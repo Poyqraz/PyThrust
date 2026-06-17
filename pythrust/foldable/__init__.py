@@ -8,6 +8,12 @@ from .comparison import (
     compute_thrust_difference_percent,
     evaluate_fixed_vs_foldable_comparison,
 )
+from .decision import (
+    DESIGN_VARIANT_DECISION_COLUMNS,
+    DesignVariantDecisionRow,
+    build_decision_matrix_from_csv,
+    write_design_variant_decision_csv,
+)
 from .design_sweep import (
     DESIGN_VARIANT_SWEEP_COLUMNS,
     DesignVariantSweepRow,
@@ -65,9 +71,11 @@ __all__ = [
     "COMPARISON_COLUMNS",
     "COMPARISON_MODEL_NOTE",
     "DEFAULT_ROOT_TIP_RATIOS",
+    "DESIGN_VARIANT_DECISION_COLUMNS",
     "DESIGN_VARIANT_SWEEP_COLUMNS",
     "DESIGN_VARIANT_SUMMARY_COLUMNS",
     "CalibrationConfig",
+    "DesignVariantDecisionRow",
     "DesignVariantSummaryRow",
     "DesignVariantSweepRow",
     "FixedVsFoldableComparisonRow",
@@ -79,6 +87,7 @@ __all__ = [
     "KinematicsConfig",
     "OPERATING_POINT_COLUMNS",
     "SWEEP_COLUMNS",
+    "build_decision_matrix_from_csv",
     "compare_fixed_vs_foldable_sweep",
     "compactness_ratio",
     "compute_thrust_difference_percent",
@@ -104,6 +113,7 @@ __all__ = [
     "validate_operating_point_columns",
     "validate_sweep_columns",
     "write_comparison_csv",
+    "write_design_variant_decision_csv",
     "write_design_variant_summary_csv",
     "write_design_variant_sweep_csv",
     "write_operating_point_csv",
