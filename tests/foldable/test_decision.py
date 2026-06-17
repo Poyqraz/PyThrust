@@ -7,15 +7,16 @@ import pytest
 from pythrust.foldable.decision import (
     DESIGN_VARIANT_DECISION_COLUMNS,
     RECOMMENDATION_BALANCED,
-    RECOMMENDATION_COMPACT,
     RECOMMENDATION_FLIGHT,
     RECOMMENDATION_NOT,
+    RECOMMENDATION_STOWED,
     VALID_RECOMMENDATIONS,
     balanced_score,
     build_decision_matrix_from_csv,
     flight_priority_score,
-    ground_priority_score,
     min_max_normalize,
+    stowed_compactness_score,
+    stowed_priority_score,
     validate_design_variant_decision_columns,
     write_design_variant_decision_csv,
 )
@@ -68,7 +69,8 @@ def test_normalized_scores_in_unit_interval(summary_csv) -> None:
         assert 0.0 <= row.performance_score <= 1.0
         assert 0.0 <= row.balanced_score <= 1.0
         assert 0.0 <= row.flight_priority_score <= 1.0
-        assert 0.0 <= row.ground_priority_score <= 1.0
+        assert 0.0 <= row.stowed_compactness_score <= 1.0
+        assert 0.0 <= row.stowed_priority_score <= 1.0
 
 
 def test_weighted_score_formulas() -> None:
@@ -76,11 +78,16 @@ def test_weighted_score_formulas() -> None:
     performance_score = 0.4
     assert balanced_score(compactness_score, performance_score) == pytest.approx(0.6)
     assert flight_priority_score(compactness_score, performance_score) == pytest.approx(
-        0.52
+        0.48
     )
-    assert ground_priority_score(compactness_score, performance_score) == pytest.approx(
-        0.68
-    )
+    assert stowed_compactness_score(compactness_score) == pytest.approx(0.8)
+    assert stowed_priority_score(compactness_score) == pytest.approx(0.8)
+
+
+def test_stowed_scores_ignore_thrust_preservation() -> None:
+    compactness_score = 0.2
+    assert stowed_compactness_score(compactness_score) == pytest.approx(0.2)
+    assert stowed_priority_score(compactness_score) == pytest.approx(0.2)
 
 
 def test_min_max_normalize_range() -> None:
@@ -95,14 +102,14 @@ def test_recommendation_labels(summary_csv) -> None:
     by_id = {row.variant_id: row for row in rows}
     notes = {row.recommendation_note for row in rows}
     assert notes.issubset(VALID_RECOMMENDATIONS)
-    assert by_id["TIP_HINGED_250_RT65_35"].recommendation_note == RECOMMENDATION_COMPACT
+    assert by_id["TIP_HINGED_250_RT65_35"].recommendation_note == RECOMMENDATION_STOWED
     assert by_id["TIP_HINGED_250_RT85_15"].recommendation_note == RECOMMENDATION_FLIGHT
     assert RECOMMENDATION_BALANCED in notes
 
 
 def test_winners_match_expected_variants(summary_csv) -> None:
     rows = {row.variant_id: row for row in build_decision_matrix_from_csv(summary_csv)}
-    assert rows["TIP_HINGED_250_RT65_35"].recommendation_note == RECOMMENDATION_COMPACT
+    assert rows["TIP_HINGED_250_RT65_35"].recommendation_note == RECOMMENDATION_STOWED
     assert rows["TIP_HINGED_250_RT85_15"].recommendation_note == RECOMMENDATION_FLIGHT
 
 
@@ -113,6 +120,8 @@ def test_decision_csv_columns(summary_csv, tmp_path) -> None:
     content = output.read_text(encoding="utf-8")
     for col in DESIGN_VARIANT_DECISION_COLUMNS:
         assert col in content
+    assert "ground_priority_score" not in content
+    assert "stowed_compactness_score" not in content
 
 
 def test_not_recommended_for_weak_variant() -> None:

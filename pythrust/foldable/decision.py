@@ -17,18 +17,18 @@ DESIGN_VARIANT_DECISION_COLUMNS: tuple[str, ...] = (
     "compactness_score",
     "balanced_score",
     "flight_priority_score",
-    "ground_priority_score",
+    "stowed_priority_score",
     "recommendation_note",
 )
 
-RECOMMENDATION_COMPACT = "compact"
+RECOMMENDATION_STOWED = "best_stowed_compactness"
 RECOMMENDATION_BALANCED = "balanced_candidate"
-RECOMMENDATION_FLIGHT = "flight_priority"
+RECOMMENDATION_FLIGHT = "best_flight_preservation"
 RECOMMENDATION_NOT = "not_recommended"
 
 VALID_RECOMMENDATIONS: frozenset[str] = frozenset(
     {
-        RECOMMENDATION_COMPACT,
+        RECOMMENDATION_STOWED,
         RECOMMENDATION_BALANCED,
         RECOMMENDATION_FLIGHT,
         RECOMMENDATION_NOT,
@@ -40,10 +40,9 @@ FALLBACK_RECOMMENDATION_THRESHOLD = 0.35
 
 BALANCED_COMPACTNESS_WEIGHT = 0.5
 BALANCED_PERFORMANCE_WEIGHT = 0.5
-FLIGHT_COMPACTNESS_WEIGHT = 0.3
-FLIGHT_PERFORMANCE_WEIGHT = 0.7
-GROUND_COMPACTNESS_WEIGHT = 0.7
-GROUND_PERFORMANCE_WEIGHT = 0.3
+FLIGHT_COMPACTNESS_WEIGHT = 0.2
+FLIGHT_PERFORMANCE_WEIGHT = 0.8
+STOWED_COMPACTNESS_WEIGHT = 1.0
 
 
 @dataclass(frozen=True)
@@ -59,7 +58,8 @@ class DesignVariantDecisionRow:
     compactness_score: float
     balanced_score: float
     flight_priority_score: float
-    ground_priority_score: float
+    stowed_compactness_score: float
+    stowed_priority_score: float
     recommendation_note: str
 
     def to_dict(self) -> Dict[str, Any]:
@@ -115,13 +115,14 @@ def flight_priority_score(compactness_score: float, performance_score: float) ->
     )
 
 
-def ground_priority_score(compactness_score: float, performance_score: float) -> float:
-    return weighted_score(
-        compactness_score,
-        performance_score,
-        compactness_weight=GROUND_COMPACTNESS_WEIGHT,
-        performance_weight=GROUND_PERFORMANCE_WEIGHT,
-    )
+def stowed_compactness_score(compactness_score: float) -> float:
+    """Katlı/stowed modda yalnızca kompaktlık skoru; itki korunumu dahil değil."""
+    return compactness_score
+
+
+def stowed_priority_score(compactness_score: float) -> float:
+    """Katlı/stowed öncelik skoru: tamamen kompaktlığa dayalı."""
+    return STOWED_COMPACTNESS_WEIGHT * compactness_score
 
 
 def _parse_summary_row(row: Mapping[str, str]) -> Dict[str, Any]:
@@ -155,7 +156,7 @@ def _argmax_variant(
 def classify_recommendation(
     row: DesignVariantDecisionRow,
     *,
-    compact_winner: str,
+    stowed_winner: str,
     balanced_winner: str,
     flight_winner: str,
 ) -> str:
@@ -163,13 +164,13 @@ def classify_recommendation(
     peak = max(
         row.balanced_score,
         row.flight_priority_score,
-        row.ground_priority_score,
+        row.stowed_priority_score,
     )
     if peak < NOT_RECOMMENDED_THRESHOLD:
         return RECOMMENDATION_NOT
 
-    if row.variant_id == compact_winner:
-        return RECOMMENDATION_COMPACT
+    if row.variant_id == stowed_winner:
+        return RECOMMENDATION_STOWED
     if row.variant_id == flight_winner:
         return RECOMMENDATION_FLIGHT
     if row.variant_id == balanced_winner:
@@ -202,6 +203,7 @@ def build_decision_matrix(
     for index, summary in enumerate(summary_rows):
         compactness_score = compactness_scores[index]
         performance_score = performance_scores[index]
+        stowed_score = stowed_compactness_score(compactness_score)
         preliminary.append(
             DesignVariantDecisionRow(
                 variant_id=str(summary["variant_id"]),
@@ -218,25 +220,23 @@ def build_decision_matrix(
                     compactness_score,
                     performance_score,
                 ),
-                ground_priority_score=ground_priority_score(
-                    compactness_score,
-                    performance_score,
-                ),
+                stowed_compactness_score=stowed_score,
+                stowed_priority_score=stowed_priority_score(compactness_score),
                 recommendation_note=RECOMMENDATION_NOT,
             )
         )
 
-    compact_winner = _argmax_variant(preliminary, "ground_priority_score")
+    stowed_winner = _argmax_variant(preliminary, "stowed_priority_score")
     flight_winner = _argmax_variant(preliminary, "flight_priority_score")
     remaining = [
         row
         for row in preliminary
-        if row.variant_id not in {compact_winner, flight_winner}
+        if row.variant_id not in {stowed_winner, flight_winner}
     ]
     balanced_winner = (
         _argmax_variant(remaining, "balanced_score")
         if remaining
-        else compact_winner
+        else stowed_winner
     )
 
     return [
@@ -250,10 +250,11 @@ def build_decision_matrix(
             compactness_score=row.compactness_score,
             balanced_score=row.balanced_score,
             flight_priority_score=row.flight_priority_score,
-            ground_priority_score=row.ground_priority_score,
+            stowed_compactness_score=row.stowed_compactness_score,
+            stowed_priority_score=row.stowed_priority_score,
             recommendation_note=classify_recommendation(
                 row,
-                compact_winner=compact_winner,
+                stowed_winner=stowed_winner,
                 balanced_winner=balanced_winner,
                 flight_winner=flight_winner,
             ),

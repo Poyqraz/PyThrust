@@ -36,7 +36,7 @@ def main() -> None:
     print("Karar matrisi:")
     header = (
         f"{'variant':>22} {'gain%':>7} {'mean_dT':>8} "
-        f"{'perf':>6} {'comp':>6} {'bal':>6} {'flt':>6} {'grd':>6} {'note':>18}"
+        f"{'perf':>6} {'comp':>6} {'bal':>6} {'flt':>6} {'stw':>6} {'note':>22}"
     )
     print(header)
     for row in rows:
@@ -45,7 +45,7 @@ def main() -> None:
             f"{row.mean_thrust_difference_percent:8.2f} "
             f"{row.performance_score:6.3f} {row.compactness_score:6.3f} "
             f"{row.balanced_score:6.3f} {row.flight_priority_score:6.3f} "
-            f"{row.ground_priority_score:6.3f} {row.recommendation_note:>18}"
+            f"{row.stowed_priority_score:6.3f} {row.recommendation_note:>22}"
         )
 
 
