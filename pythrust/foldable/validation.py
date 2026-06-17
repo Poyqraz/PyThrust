@@ -10,6 +10,7 @@ from .comparison import (
     COMPARISON_COLUMNS,
     FixedVsFoldableComparisonRow,
 )
+from .design_sweep import DESIGN_VARIANT_SWEEP_COLUMNS, DesignVariantSweepRow
 from .integration import FoldableOperatingPointResult
 from .models import FoldableSweepRow
 
@@ -177,5 +178,39 @@ def write_comparison_csv(
         writer.writeheader()
         for row in rows:
             writer.writerow(comparison_to_dict(row, columns))
+
+    return output_path
+
+
+def design_variant_to_dict(
+    row: DesignVariantSweepRow,
+    columns: Sequence[str] = DESIGN_VARIANT_SWEEP_COLUMNS,
+) -> dict[str, object]:
+    full = row.to_dict()
+    return {key: full[key] for key in columns}
+
+
+def validate_design_variant_columns(columns: Sequence[str]) -> list[str]:
+    return [col for col in DESIGN_VARIANT_SWEEP_COLUMNS if col not in columns]
+
+
+def write_design_variant_sweep_csv(
+    path: str | Path,
+    rows: Sequence[DesignVariantSweepRow],
+    *,
+    columns: Sequence[str] = DESIGN_VARIANT_SWEEP_COLUMNS,
+) -> Path:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    missing = validate_design_variant_columns(columns)
+    if missing:
+        raise ValueError(f"Missing required CSV columns: {missing}")
+
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(columns))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(design_variant_to_dict(row, columns))
 
     return output_path

@@ -8,6 +8,11 @@ from .comparison import (
     compute_thrust_difference_percent,
     evaluate_fixed_vs_foldable_comparison,
 )
+from .design_sweep import (
+    DESIGN_VARIANT_SWEEP_COLUMNS,
+    DesignVariantSweepRow,
+    sweep_design_variants,
+)
 from .effective_diameter import effective_diameter_m
 from .integration import (
     FoldableOperatingPointResult,
@@ -31,13 +36,21 @@ from .performance import (
     estimate_thrust_reference_scaled,
     thrust_model_note,
 )
+from .variants import (
+    DEFAULT_ROOT_TIP_RATIOS,
+    compactness_ratio,
+    list_default_variant_configs,
+    make_variant_config,
+)
 from .validation import (
     OPERATING_POINT_COLUMNS,
     SWEEP_COLUMNS,
     validate_comparison_columns,
+    validate_design_variant_columns,
     validate_operating_point_columns,
     validate_sweep_columns,
     write_comparison_csv,
+    write_design_variant_sweep_csv,
     write_operating_point_csv,
     write_sweep_csv,
 )
@@ -45,7 +58,10 @@ from .validation import (
 __all__ = [
     "COMPARISON_COLUMNS",
     "COMPARISON_MODEL_NOTE",
+    "DEFAULT_ROOT_TIP_RATIOS",
+    "DESIGN_VARIANT_SWEEP_COLUMNS",
     "CalibrationConfig",
+    "DesignVariantSweepRow",
     "FixedVsFoldableComparisonRow",
     "FoldableGeometry",
     "FoldableOperatingPointResult",
@@ -56,6 +72,7 @@ __all__ = [
     "OPERATING_POINT_COLUMNS",
     "SWEEP_COLUMNS",
     "compare_fixed_vs_foldable_sweep",
+    "compactness_ratio",
     "compute_thrust_difference_percent",
     "effective_diameter_m",
     "estimate_foldable_thrust_n",
@@ -65,15 +82,20 @@ __all__ = [
     "evaluate_foldable_operating_point",
     "evaluate_sweep",
     "evaluate_sweep_row",
+    "list_default_variant_configs",
     "load_config",
+    "make_variant_config",
     "post_process_from_operating_point",
     "solve_pythrust_operating_point",
+    "sweep_design_variants",
     "thrust_model_note",
     "theta_deg_from_rpm",
     "validate_comparison_columns",
+    "validate_design_variant_columns",
     "validate_operating_point_columns",
     "validate_sweep_columns",
     "write_comparison_csv",
+    "write_design_variant_sweep_csv",
     "write_operating_point_csv",
     "write_sweep_csv",
 ]
