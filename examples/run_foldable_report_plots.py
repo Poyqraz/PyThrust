@@ -10,6 +10,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from pythrust.foldable.plots import (  # noqa: E402
     FOLDABLE_REPORT_FIGURE_NAMES,
+    FOLDABLE_REPORT_MARKDOWN_NAME,
     generate_foldable_report_figures,
 )
 
@@ -45,9 +46,10 @@ def main() -> None:
     print(f"Summary : {summary_path}")
     print(f"Decision: {decision_path}")
     print(f"Output  : {figures_dir}")
-    print(f"Figures : {len(written)}")
+    print(f"Figures : {len(written) - 1}")
     for name in FOLDABLE_REPORT_FIGURE_NAMES:
         print(f"  - {name}")
+    print(f"  - {FOLDABLE_REPORT_MARKDOWN_NAME}")
 
 
 if __name__ == "__main__":

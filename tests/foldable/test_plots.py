@@ -4,21 +4,25 @@ from pathlib import Path
 
 import pytest
 
+from pythrust.foldable.decision import (
+    build_decision_matrix_from_csv,
+    write_design_variant_decision_csv,
+)
 from pythrust.foldable.design_sweep import sweep_design_variants
 from pythrust.foldable.models import load_config
 from pythrust.foldable.plots import (
     FOLDABLE_REPORT_FIGURE_NAMES,
+    FOLDABLE_REPORT_MARKDOWN_NAME,
+    enrich_sweep_rows_for_plots,
     generate_foldable_report_figures,
+    read_sweep_csv_for_plots,
 )
 from pythrust.foldable.summary import (
     summarize_design_variants_from_csv,
     write_design_variant_summary_csv,
 )
-from pythrust.foldable.decision import (
-    build_decision_matrix_from_csv,
-    write_design_variant_decision_csv,
-)
 from pythrust.foldable.validation import write_design_variant_sweep_csv
+from pythrust.foldable.variants import DEFAULT_ROOT_TIP_RATIOS
 from pythrust.propellers.database import PropellerDatabase
 
 
@@ -53,6 +57,29 @@ def foldable_csv_bundle(tmp_path):
     return sweep_path, summary_path, decision_path, figures_dir
 
 
+def test_enrich_sweep_adds_throttle_zero_startup_point() -> None:
+    rows = enrich_sweep_rows_for_plots(
+        [
+            {
+                "variant_id": "V1",
+                "throttle": 0.2,
+                "rpm": 1000.0,
+                "theta_deg": -10.0,
+                "effective_diameter_m": 0.24,
+                "foldable_thrust_n": 1.0,
+                "fixed_thrust_n": 2.0,
+                "thrust_difference_percent": -50.0,
+                "compactness_ratio": 0.9,
+            }
+        ]
+    )
+    startup = next(row for row in rows if row["throttle"] == 0.0)
+    assert startup["rpm"] == 0.0
+    assert startup["theta_deg"] == -45.0
+    assert startup["effective_diameter_m"] == pytest.approx(0.225)
+    assert startup["foldable_thrust_n"] == 0.0
+
+
 def test_generate_foldable_report_figures_creates_expected_files(
     foldable_csv_bundle,
 ) -> None:
@@ -63,8 +90,20 @@ def test_generate_foldable_report_figures_creates_expected_files(
         decision_csv_path=decision_path,
         figures_dir=figures_dir,
     )
-    assert len(written) == len(FOLDABLE_REPORT_FIGURE_NAMES)
+    assert len(written) == len(FOLDABLE_REPORT_FIGURE_NAMES) + 1
     for filename in FOLDABLE_REPORT_FIGURE_NAMES:
         figure_path = figures_dir / filename
         assert figure_path.is_file()
         assert figure_path.stat().st_size > 0
+    report_path = figures_dir / FOLDABLE_REPORT_MARKDOWN_NAME
+    assert report_path.is_file()
+    content = report_path.read_text(encoding="utf-8")
+    assert "reference_scaled" in content
+    assert "fig_thrust_difference_normalized_250mm.png" in content
+
+
+def test_normalized_thrust_field_present_after_enrichment(foldable_csv_bundle) -> None:
+    sweep_path, _, _, _ = foldable_csv_bundle
+    rows = enrich_sweep_rows_for_plots(read_sweep_csv_for_plots(sweep_path))
+    assert all("thrust_difference_normalized_250mm" in row for row in rows)
+    assert len({row["variant_id"] for row in rows}) == len(DEFAULT_ROOT_TIP_RATIOS)

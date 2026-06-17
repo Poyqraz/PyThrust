@@ -14,6 +14,60 @@ import matplotlib.pyplot as plt
 
 from .decision import read_design_variant_summary_csv
 
+PROJECT_OPEN_DIAMETER_M = 0.25
+DEFAULT_THETA_MIN_DEG = -45.0
+
+MODEL_NOTE_LINES: tuple[str, ...] = (
+    "Model: reference_scaled thrust",
+    "No CFD/BEMT/experiment yet",
+    "Theta: RPM-only kinematics",
+)
+
+FOLDABLE_REPORT_FIGURE_NAMES: tuple[str, ...] = (
+    "theta_deg_vs_throttle_by_variant.png",
+    "effective_diameter_m_vs_throttle_by_variant.png",
+    "foldable_thrust_n_vs_throttle_by_variant.png",
+    "thrust_difference_percent_vs_throttle_by_variant.png",
+    "fig_thrust_difference_normalized_250mm.png",
+    "flight_startup_scores_by_variant.png",
+)
+
+FOLDABLE_REPORT_MARKDOWN_NAME = "foldable_figures_report.md"
+
+SWEEP_THROTTLE_PLOTS: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "theta_deg",
+        "theta_deg_vs_throttle_by_variant.png",
+        "Hinge angle vs throttle",
+        "RPM-only hinge kinematics; identical across variants at equal throttle.",
+    ),
+    (
+        "effective_diameter_m",
+        "effective_diameter_m_vs_throttle_by_variant.png",
+        "Effective diameter vs throttle",
+        "Includes throttle=0 startup point at folded effective diameter.",
+    ),
+    (
+        "foldable_thrust_n",
+        "foldable_thrust_n_vs_throttle_by_variant.png",
+        "Foldable thrust vs throttle",
+        "Includes throttle=0 startup point with zero thrust.",
+    ),
+    (
+        "thrust_difference_percent",
+        "thrust_difference_percent_vs_throttle_by_variant.png",
+        "Thrust difference vs throttle (APC reference_scaled)",
+        "Relative to PyThrust fixed thrust at D_ref=0.254 m (APC reference).",
+    ),
+)
+
+DECISION_SCORE_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("startup_thrust_score", "Startup thrust"),
+    ("deployment_score", "Diameter growth"),
+    ("flight_performance_score", "Flight performance"),
+    ("takeoff_transition_score", "Takeoff transition"),
+)
+
 
 def read_sweep_csv_for_plots(path: str | Path) -> List[Dict[str, Any]]:
     """Sweep CSV dosyasını grafik için gerekli alanlarla oku."""
@@ -26,47 +80,82 @@ def read_sweep_csv_for_plots(path: str | Path) -> List[Dict[str, Any]]:
             {
                 "variant_id": row["variant_id"],
                 "throttle": float(row["throttle"]),
+                "rpm": float(row["rpm"]),
                 "theta_deg": float(row["theta_deg"]),
                 "effective_diameter_m": float(row["effective_diameter_m"]),
                 "foldable_thrust_n": float(row["foldable_thrust_n"]),
+                "fixed_thrust_n": float(row["fixed_thrust_n"]),
                 "thrust_difference_percent": float(row["thrust_difference_percent"]),
+                "compactness_ratio": float(row["compactness_ratio"]),
             }
             for row in reader
         ]
 
-FOLDABLE_REPORT_FIGURE_NAMES: tuple[str, ...] = (
-    "theta_deg_vs_throttle_by_variant.png",
-    "effective_diameter_m_vs_throttle_by_variant.png",
-    "foldable_thrust_n_vs_throttle_by_variant.png",
-    "thrust_difference_percent_vs_throttle_by_variant.png",
-    "flight_startup_scores_by_variant.png",
-)
 
-SWEEP_THROTTLE_PLOTS: tuple[tuple[str, str, str], ...] = (
-    ("theta_deg", "theta_deg_vs_throttle_by_variant.png", "Hinge angle vs throttle"),
-    (
-        "effective_diameter_m",
-        "effective_diameter_m_vs_throttle_by_variant.png",
-        "Effective diameter vs throttle",
-    ),
-    (
-        "foldable_thrust_n",
-        "foldable_thrust_n_vs_throttle_by_variant.png",
-        "Foldable thrust vs throttle",
-    ),
-    (
-        "thrust_difference_percent",
-        "thrust_difference_percent_vs_throttle_by_variant.png",
-        "Thrust difference vs throttle",
-    ),
-)
+def thrust_difference_normalized_250mm(
+    fixed_thrust_n: float,
+    effective_diameter_m: float,
+    *,
+    reference_diameter_m: float = PROJECT_OPEN_DIAMETER_M,
+    eta_hinge: float = 1.0,
+    eta_profile: float = 1.0,
+) -> float:
+    """Proje açık çapına (0.25 m) göre normalize edilmiş itki farkı (%)."""
+    if fixed_thrust_n <= 0.0:
+        return 0.0
+    ratio = effective_diameter_m / reference_diameter_m
+    foldable_thrust_n = fixed_thrust_n * (ratio**4) * eta_hinge * eta_profile
+    return (foldable_thrust_n - fixed_thrust_n) / fixed_thrust_n * 100.0
 
-DECISION_SCORE_COLUMNS: tuple[tuple[str, str], ...] = (
-    ("startup_thrust_score", "Startup"),
-    ("deployment_score", "Deployment"),
-    ("flight_performance_score", "Flight"),
-    ("takeoff_transition_score", "Takeoff"),
-)
+
+def enrich_sweep_rows_for_plots(
+    sweep_rows: Sequence[Mapping[str, Any]],
+    *,
+    theta_min_deg: float = DEFAULT_THETA_MIN_DEG,
+    open_diameter_m: float = PROJECT_OPEN_DIAMETER_M,
+    eta_hinge: float = 1.0,
+    eta_profile: float = 1.0,
+) -> List[Dict[str, Any]]:
+    """Throttle=0 başlangıç noktası ve normalize itki farkını ekle."""
+    grouped = _group_sweep_by_variant(sweep_rows)
+    enriched: List[Dict[str, Any]] = []
+
+    for variant_id in sorted(grouped):
+        rows = grouped[variant_id]
+        compactness_ratio = float(rows[0]["compactness_ratio"])
+        folded_diameter_m = compactness_ratio * open_diameter_m
+        has_zero_throttle = any(abs(float(row["throttle"])) <= 1e-9 for row in rows)
+
+        if not has_zero_throttle:
+            enriched.append(
+                {
+                    "variant_id": variant_id,
+                    "throttle": 0.0,
+                    "rpm": 0.0,
+                    "theta_deg": theta_min_deg,
+                    "effective_diameter_m": folded_diameter_m,
+                    "foldable_thrust_n": 0.0,
+                    "fixed_thrust_n": 0.0,
+                    "thrust_difference_percent": 0.0,
+                    "compactness_ratio": compactness_ratio,
+                    "thrust_difference_normalized_250mm": 0.0,
+                }
+            )
+
+        for row in rows:
+            payload = dict(row)
+            payload["thrust_difference_normalized_250mm"] = (
+                thrust_difference_normalized_250mm(
+                    float(payload["fixed_thrust_n"]),
+                    float(payload["effective_diameter_m"]),
+                    reference_diameter_m=open_diameter_m,
+                    eta_hinge=eta_hinge,
+                    eta_profile=eta_profile,
+                )
+            )
+            enriched.append(payload)
+
+    return enriched
 
 
 def _group_sweep_by_variant(
@@ -88,6 +177,49 @@ def _variant_label(variant_id: str) -> str:
     return variant_id
 
 
+def _theta_curves_overlap(grouped: Mapping[str, Sequence[Mapping[str, Any]]]) -> bool:
+    if len(grouped) <= 1:
+        return True
+    variant_ids = sorted(grouped)
+    reference = [
+        (float(row["throttle"]), float(row["theta_deg"]))
+        for row in grouped[variant_ids[0]]
+    ]
+    for variant_id in variant_ids[1:]:
+        pairs = [
+            (float(row["throttle"]), float(row["theta_deg"]))
+            for row in grouped[variant_id]
+        ]
+        if len(pairs) != len(reference):
+            return False
+        for ref_pair, pair in zip(reference, pairs):
+            if abs(ref_pair[0] - pair[0]) > 1e-9 or abs(ref_pair[1] - pair[1]) > 1e-9:
+                return False
+    return True
+
+
+def _add_model_note_to_figure(
+    fig: plt.Figure,
+    *,
+    subtitle: str = "",
+    extra_notes: Sequence[str] = (),
+) -> None:
+    note_lines = list(MODEL_NOTE_LINES)
+    if subtitle:
+        note_lines.insert(0, subtitle)
+    note_lines.extend(extra_notes)
+    fig.text(
+        0.01,
+        0.01,
+        " | ".join(note_lines),
+        ha="left",
+        va="bottom",
+        fontsize=7,
+        color="0.35",
+        wrap=True,
+    )
+
+
 def read_design_variant_decision_csv(path: str | Path) -> List[Dict[str, Any]]:
     """Karar matrisi CSV dosyasını oku."""
     decision_path = Path(path)
@@ -98,6 +230,55 @@ def read_design_variant_decision_csv(path: str | Path) -> List[Dict[str, Any]]:
         return [dict(row) for row in reader]
 
 
+def plot_theta_vs_throttle(
+    sweep_rows: Sequence[Mapping[str, Any]],
+    *,
+    output_path: str | Path,
+    subtitle: str,
+) -> Path:
+    """Hinge açısı grafiği; varyantlar örtüşüyorsa tek temsil çizgi."""
+    grouped = _group_sweep_by_variant(sweep_rows)
+    figure_path = Path(output_path)
+    figure_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fig, axis = plt.subplots(figsize=(8, 5))
+    overlap = _theta_curves_overlap(grouped)
+
+    if overlap:
+        rows = grouped[sorted(grouped)[0]]
+        throttles = [float(row["throttle"]) for row in rows]
+        values = [float(row["theta_deg"]) for row in rows]
+        axis.plot(
+            throttles,
+            values,
+            marker="o",
+            label="All variants (RPM-only kinematics)",
+            color="tab:blue",
+        )
+        title = "Hinge angle vs throttle (shared kinematics)"
+        note = "Same RPM-only kinematics for all variants"
+    else:
+        for variant_id in sorted(grouped):
+            rows = grouped[variant_id]
+            throttles = [float(row["throttle"]) for row in rows]
+            values = [float(row["theta_deg"]) for row in rows]
+            axis.plot(throttles, values, marker="o", label=_variant_label(variant_id))
+        title = "Hinge angle vs throttle by variant"
+        note = ""
+
+    axis.set_xlabel("Throttle")
+    axis.set_ylabel("theta_deg")
+    axis.set_title(title)
+    axis.grid(True, linestyle="--", alpha=0.4)
+    axis.legend(fontsize=8)
+    _add_model_note_to_figure(fig, subtitle=subtitle, extra_notes=[note] if note else ())
+    fig.tight_layout()
+    fig.subplots_adjust(bottom=0.16)
+    fig.savefig(figure_path, dpi=150)
+    plt.close(fig)
+    return figure_path
+
+
 def plot_sweep_metric_vs_throttle(
     sweep_rows: Sequence[Mapping[str, Any]],
     *,
@@ -105,6 +286,7 @@ def plot_sweep_metric_vs_throttle(
     title: str,
     output_path: str | Path,
     ylabel: str | None = None,
+    subtitle: str = "",
 ) -> Path:
     """Sweep verisinden varyant başına throttle grafiği üret."""
     grouped = _group_sweep_by_variant(sweep_rows)
@@ -123,7 +305,9 @@ def plot_sweep_metric_vs_throttle(
     axis.set_title(title)
     axis.grid(True, linestyle="--", alpha=0.4)
     axis.legend(title="Variant", fontsize=8)
+    _add_model_note_to_figure(fig, subtitle=subtitle)
     fig.tight_layout()
+    fig.subplots_adjust(bottom=0.16)
     fig.savefig(figure_path, dpi=150)
     plt.close(fig)
     return figure_path
@@ -158,29 +342,90 @@ def plot_decision_scores_by_variant(
     axis.set_title("Flight-startup decision scores by variant")
     axis.grid(True, axis="y", linestyle="--", alpha=0.4)
     axis.legend()
+    _add_model_note_to_figure(
+        fig,
+        subtitle="deployment_score shown as diameter_growth_score (not dynamic opening speed)",
+    )
     fig.tight_layout()
+    fig.subplots_adjust(bottom=0.16)
     fig.savefig(figure_path, dpi=150)
     plt.close(fig)
     return figure_path
 
 
+def write_figure_report_markdown(
+    figures_dir: str | Path,
+    *,
+    figure_captions: Sequence[tuple[str, str]],
+) -> Path:
+    """Üretilen grafikler için kısa markdown özet dosyası yaz."""
+    output_dir = Path(figures_dir)
+    report_path = output_dir / FOLDABLE_REPORT_MARKDOWN_NAME
+    lines = [
+        "# Foldable Report Figures",
+        "",
+        "## Model notes",
+        "",
+    ]
+    for note in MODEL_NOTE_LINES:
+        lines.append(f"- {note}")
+    lines.extend(["", "## Figures", ""])
+    for filename, caption in figure_captions:
+        lines.append(f"### `{filename}`")
+        lines.append("")
+        lines.append(caption)
+        lines.append("")
+    report_path.write_text("\n".join(lines), encoding="utf-8")
+    return report_path
+
+
 def generate_sweep_figures(
     sweep_csv_path: str | Path,
     figures_dir: str | Path,
+    *,
+    theta_min_deg: float = DEFAULT_THETA_MIN_DEG,
+    open_diameter_m: float = PROJECT_OPEN_DIAMETER_M,
 ) -> List[Path]:
     """Sweep CSV'den throttle tabanlı grafikleri üret."""
-    sweep_rows = read_sweep_csv_for_plots(sweep_csv_path)
+    sweep_rows = enrich_sweep_rows_for_plots(
+        read_sweep_csv_for_plots(sweep_csv_path),
+        theta_min_deg=theta_min_deg,
+        open_diameter_m=open_diameter_m,
+    )
     output_dir = Path(figures_dir)
     written: List[Path] = []
-    for y_column, filename, title in SWEEP_THROTTLE_PLOTS:
-        written.append(
-            plot_sweep_metric_vs_throttle(
-                sweep_rows,
-                y_column=y_column,
-                title=title,
-                output_path=output_dir / filename,
+
+    for y_column, filename, title, subtitle in SWEEP_THROTTLE_PLOTS:
+        output_path = output_dir / filename
+        if y_column == "theta_deg":
+            written.append(
+                plot_theta_vs_throttle(
+                    sweep_rows,
+                    output_path=output_path,
+                    subtitle=subtitle,
+                )
             )
+        else:
+            written.append(
+                plot_sweep_metric_vs_throttle(
+                    sweep_rows,
+                    y_column=y_column,
+                    title=title,
+                    output_path=output_path,
+                    subtitle=subtitle,
+                )
+            )
+
+    written.append(
+        plot_sweep_metric_vs_throttle(
+            sweep_rows,
+            y_column="thrust_difference_normalized_250mm",
+            title="Normalized thrust difference vs throttle (D_ref = 0.25 m)",
+            output_path=output_dir / "fig_thrust_difference_normalized_250mm.png",
+            ylabel="Thrust difference (%)",
+            subtitle="Foldable loss relative to project open diameter 0.25 m, not APC 0.254 m.",
         )
+    )
     return written
 
 
@@ -192,8 +437,28 @@ def generate_decision_figure(
     decision_rows = read_design_variant_decision_csv(decision_csv_path)
     return plot_decision_scores_by_variant(
         decision_rows,
-        output_path=Path(figures_dir) / FOLDABLE_REPORT_FIGURE_NAMES[4],
+        output_path=Path(figures_dir) / "flight_startup_scores_by_variant.png",
     )
+
+
+def _figure_captions() -> List[tuple[str, str]]:
+    captions = [
+        (filename, subtitle)
+        for _, filename, _, subtitle in SWEEP_THROTTLE_PLOTS
+    ]
+    captions.append(
+        (
+            "fig_thrust_difference_normalized_250mm.png",
+            "Foldable thrust loss scaled with D_ref = 0.25 m project diameter.",
+        )
+    )
+    captions.append(
+        (
+            "flight_startup_scores_by_variant.png",
+            "Decision support scores; deployment_score labeled as diameter_growth_score.",
+        )
+    )
+    return captions
 
 
 def generate_foldable_report_figures(
@@ -202,10 +467,18 @@ def generate_foldable_report_figures(
     summary_csv_path: str | Path,
     decision_csv_path: str | Path,
     figures_dir: str | Path,
+    theta_min_deg: float = DEFAULT_THETA_MIN_DEG,
+    open_diameter_m: float = PROJECT_OPEN_DIAMETER_M,
 ) -> List[Path]:
-    """Tüm foldable rapor grafiklerini üret."""
+    """Tüm foldable rapor grafiklerini ve markdown özetini üret."""
     del summary_csv_path  # reserved for future summary overlays
     output_dir = Path(figures_dir)
-    written = generate_sweep_figures(sweep_csv_path, output_dir)
+    written = generate_sweep_figures(
+        sweep_csv_path,
+        output_dir,
+        theta_min_deg=theta_min_deg,
+        open_diameter_m=open_diameter_m,
+    )
     written.append(generate_decision_figure(decision_csv_path, output_dir))
+    written.append(write_figure_report_markdown(output_dir, figure_captions=_figure_captions()))
     return written
