@@ -1,0 +1,42 @@
+{
+  "id": "TIP_HINGED_250_V01",
+  "description": "Uçtan mafsallı katlanabilir pervane — 250 mm açık çap, V01",
+  "geometry": {
+    "diameter_open_m": 0.25,
+    "main_blade_length_m": 0.10,
+    "tip_segment_length_m": 0.025,
+    "hinge_position_m": 0.10,
+    "tip_segment_mass_kg": 0.002,
+    "blade_count": 2
+  },
+  "hinge": {
+    "theta_min_deg": -45.0,
+    "theta_max_deg": 0.0,
+    "rpm_threshold": 2000.0,
+    "rpm_full_open": 8000.0
+  },
+  "kinematics": {
+    "model": "linear_saturation",
+    "k_open": 1.0
+  },
+  "calibration": {
+    "k_thrust": 1.0,
+    "k_torque": 1.0,
+    "ct_ref": 0.10,
+    "model_note": "V1 linear RPM hinge model, geometric D_eff, simplified thrust scaling"
+  },
+  "reference_propeller_id": "APC_10x4.7",
+  "motor": {
+    "kv_rpm_per_v": 980.0,
+    "resistance_ohm": 0.06,
+    "no_load_current_a": 1.2,
+    "current_max_a": 30.0
+  },
+  "battery": {
+    "voltage_v": 11.1,
+    "discharge_efficiency": 0.98
+  },
+  "system": {
+    "resistance_ohm": 0.015
+  }
+}

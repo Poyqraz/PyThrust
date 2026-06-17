@@ -1,0 +1,1 @@
+"""Katlanabilir pervane modülü testleri."""
