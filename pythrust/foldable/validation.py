@@ -6,6 +6,7 @@ import csv
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from .integration import FoldableOperatingPointResult
 from .models import FoldableSweepRow
 
 # Minimum V1 sweep kolonları (örnek script ve testler)
@@ -25,6 +26,20 @@ EXTENDED_SWEEP_COLUMNS: tuple[str, ...] = SWEEP_COLUMNS + (
     "current_a",
     "power_w",
     "efficiency",
+)
+
+OPERATING_POINT_COLUMNS: tuple[str, ...] = (
+    "voltage_v",
+    "throttle",
+    "rpm",
+    "theta_deg",
+    "effective_diameter_m",
+    "thrust_n",
+    "torque_nm",
+    "current_a",
+    "power_w",
+    "efficiency",
+    "model_note",
 )
 
 
@@ -84,5 +99,42 @@ def write_sweep_csv(
         writer.writeheader()
         for row in rows:
             writer.writerow(row_to_dict(row, columns))
+
+    return output_path
+
+
+def operating_point_to_dict(
+    result: FoldableOperatingPointResult,
+    columns: Sequence[str] = OPERATING_POINT_COLUMNS,
+) -> dict[str, object]:
+    """FoldableOperatingPointResult'u sözlük olarak dönüştür."""
+    full = result.to_dict()
+    return {key: full[key] for key in columns}
+
+
+def validate_operating_point_columns(columns: Sequence[str]) -> list[str]:
+    """Operating point CSV kolonlarını doğrula."""
+    return [col for col in OPERATING_POINT_COLUMNS if col not in columns]
+
+
+def write_operating_point_csv(
+    path: str | Path,
+    rows: Sequence[FoldableOperatingPointResult],
+    *,
+    columns: Sequence[str] = OPERATING_POINT_COLUMNS,
+) -> Path:
+    """Operating point sonuçlarını CSV dosyasına yaz."""
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    missing = validate_operating_point_columns(columns)
+    if missing:
+        raise ValueError(f"Missing required CSV columns: {missing}")
+
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(columns))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(operating_point_to_dict(row, columns))
 
     return output_path

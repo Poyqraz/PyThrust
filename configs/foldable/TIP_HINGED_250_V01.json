@@ -25,7 +25,7 @@
     "ct_ref": 0.10,
     "model_note": "V1 linear RPM hinge model, geometric D_eff, simplified thrust scaling"
   },
-  "reference_propeller_id": "APC_10x4.7",
+  "reference_propeller_id": "APC_10x4.7SF",
   "motor": {
     "kv_rpm_per_v": 980.0,
     "resistance_ohm": 0.06,
