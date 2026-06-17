@@ -23,7 +23,11 @@
     "k_thrust": 1.0,
     "k_torque": 1.0,
     "ct_ref": 0.10,
-    "model_note": "V1 linear RPM hinge model, geometric D_eff, simplified thrust scaling"
+    "model_note": "V1 linear RPM hinge model, geometric D_eff",
+    "thrust_model_mode": "reference_scaled",
+    "eta_hinge": 1.0,
+    "eta_profile": 1.0,
+    "reference_diameter_m": 0.254
   },
   "reference_propeller_id": "APC_10x4.7SF",
   "motor": {

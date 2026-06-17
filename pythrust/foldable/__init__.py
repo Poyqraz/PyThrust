@@ -25,7 +25,12 @@ from .models import (
     KinematicsConfig,
     load_config,
 )
-from .performance import estimate_thrust_n, evaluate_sweep, evaluate_sweep_row
+from .performance import (
+    estimate_foldable_thrust_n,
+    estimate_thrust_n,
+    estimate_thrust_reference_scaled,
+    thrust_model_note,
+)
 from .validation import (
     OPERATING_POINT_COLUMNS,
     SWEEP_COLUMNS,
@@ -53,7 +58,9 @@ __all__ = [
     "compare_fixed_vs_foldable_sweep",
     "compute_thrust_difference_percent",
     "effective_diameter_m",
+    "estimate_foldable_thrust_n",
     "estimate_thrust_n",
+    "estimate_thrust_reference_scaled",
     "evaluate_fixed_vs_foldable_comparison",
     "evaluate_foldable_operating_point",
     "evaluate_sweep",
@@ -61,6 +68,7 @@ __all__ = [
     "load_config",
     "post_process_from_operating_point",
     "solve_pythrust_operating_point",
+    "thrust_model_note",
     "theta_deg_from_rpm",
     "validate_comparison_columns",
     "validate_operating_point_columns",

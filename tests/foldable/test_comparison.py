@@ -50,6 +50,23 @@ def test_comparison_row_thrust_difference(project_config, prop_entry) -> None:
     assert math.isclose(row.thrust_difference_percent, expected, rel_tol=1e-9)
 
 
+def test_reference_scaled_comparison_scales_from_fixed(project_config, prop_entry) -> None:
+    """reference_scaled modda foldable itki T_fixed üzerinden ölçeklenmeli."""
+    from pythrust.foldable.performance import estimate_thrust_reference_scaled
+
+    row = evaluate_fixed_vs_foldable_comparison(project_config, prop_entry, throttle=0.6)
+    expected = estimate_thrust_reference_scaled(
+        row.fixed_thrust_n,
+        row.foldable_effective_diameter_m,
+        project_config.calibration.reference_diameter_m,
+        eta_hinge=project_config.calibration.eta_hinge,
+        eta_profile=project_config.calibration.eta_profile,
+    )
+    assert math.isclose(row.foldable_thrust_n, expected, rel_tol=1e-9)
+    assert row.foldable_effective_diameter_m < project_config.geometry.diameter_open_m + 1e-9
+    assert row.foldable_thrust_n < row.fixed_thrust_n
+
+
 def test_comparison_csv_columns(tmp_path, project_config, prop_entry) -> None:
     row = evaluate_fixed_vs_foldable_comparison(project_config, prop_entry, throttle=0.5)
     output = tmp_path / "comparison.csv"

@@ -22,7 +22,7 @@ from pythrust.propulsion.solver import PropulsionSolver
 from .effective_diameter import effective_diameter_m
 from .kinematics import theta_deg_from_rpm
 from .models import FoldablePropellerConfig
-from .performance import estimate_thrust_n
+from .performance import estimate_foldable_thrust_n, thrust_model_note
 
 V2_MODEL_NOTE = (
     "V2 PyThrust operating-point RPM + foldable post-processing "
@@ -131,18 +131,22 @@ def post_process_from_operating_point(
     - ``rpm``, ``torque_nm``, ``motor_current_a``, ``battery_power_w``, ``system_efficiency``
 
     Foldable modülden hesaplananlar:
-    - ``theta_deg``, ``effective_diameter_m``, ``thrust_n`` (V1 basit model)
+    - ``theta_deg``, ``effective_diameter_m``, ``thrust_n`` (config thrust model)
     """
     rpm = operating_point.rpm
     theta_deg = theta_deg_from_rpm(rpm, config)
     diameter_m = effective_diameter_m(theta_deg, config)
-    thrust_n = estimate_thrust_n(
+    thrust_n = estimate_foldable_thrust_n(
+        config,
         rpm,
         diameter_m,
         rho=rho,
-        ct_ref=config.calibration.ct_ref,
-        k_thrust=config.calibration.k_thrust,
+        fixed_thrust_n=operating_point.thrust_n,
+        reference_diameter_m=config.calibration.reference_diameter_m,
     )
+
+    note = model_note or V2_MODEL_NOTE
+    note = f"{note}; {thrust_model_note(config)}"
 
     return FoldableOperatingPointResult(
         voltage_v=voltage_v,
@@ -155,7 +159,7 @@ def post_process_from_operating_point(
         current_a=operating_point.motor_current_a,
         power_w=operating_point.battery_power_w,
         efficiency=operating_point.system_efficiency,
-        model_note=model_note or V2_MODEL_NOTE,
+        model_note=note,
         is_feasible=operating_point.is_feasible,
         infeasible_reason=operating_point.infeasible_reason,
     )

@@ -40,12 +40,16 @@ class KinematicsConfig:
 
 @dataclass(frozen=True)
 class CalibrationConfig:
-    """Basit kalibrasyon katsayıları (V1)."""
+    """Basit ve referans ölçekli kalibrasyon katsayıları."""
 
     k_thrust: float
     k_torque: float
     ct_ref: float
     model_note: str
+    thrust_model_mode: str = "simple"
+    eta_hinge: float = 1.0
+    eta_profile: float = 1.0
+    reference_diameter_m: float = 0.254
 
 
 @dataclass(frozen=True)
@@ -152,6 +156,10 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
             k_torque=float(calibration_raw["k_torque"]),
             ct_ref=float(calibration_raw["ct_ref"]),
             model_note=str(calibration_raw["model_note"]),
+            thrust_model_mode=str(calibration_raw.get("thrust_model_mode", "simple")),
+            eta_hinge=float(calibration_raw.get("eta_hinge", 1.0)),
+            eta_profile=float(calibration_raw.get("eta_profile", 1.0)),
+            reference_diameter_m=float(calibration_raw.get("reference_diameter_m", 0.254)),
         ),
         reference_propeller_id=str(raw.get("reference_propeller_id", "")),
         motor=MotorConfig(

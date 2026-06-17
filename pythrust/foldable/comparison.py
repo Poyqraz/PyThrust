@@ -12,12 +12,15 @@ from .integration import (
     solve_pythrust_operating_point,
 )
 from .models import FoldablePropellerConfig
+from .performance import estimate_foldable_thrust_n, thrust_model_note
+from .effective_diameter import effective_diameter_m
+from .kinematics import theta_deg_from_rpm
 
-COMPARISON_MODEL_NOTE = (
+COMPARISON_MODEL_NOTE_BASE = (
     "Fixed thrust from PyThrust OperatingPoint (reference propeller Ct/Cp); "
-    "foldable thrust from V1 simplified model with RPM-dependent effective diameter; "
     "same motor/battery/throttle/RPM equilibrium for both"
 )
+COMPARISON_MODEL_NOTE = COMPARISON_MODEL_NOTE_BASE
 
 COMPARISON_COLUMNS: tuple[str, ...] = (
     "voltage_v",
@@ -91,14 +94,27 @@ def evaluate_fixed_vs_foldable_comparison(
     )
 
     fixed_thrust_n = operating_point.thrust_n
-    foldable_thrust_n = foldable.thrust_n
+    d_eff = foldable.effective_diameter_m
+    d_ref = config.calibration.reference_diameter_m
+    foldable_thrust_n = estimate_foldable_thrust_n(
+        config,
+        operating_point.rpm,
+        d_eff,
+        rho=rho,
+        fixed_thrust_n=fixed_thrust_n,
+        reference_diameter_m=d_ref,
+    )
+
+    comparison_note = model_note or (
+        f"{COMPARISON_MODEL_NOTE_BASE}; {thrust_model_note(config)}"
+    )
 
     return FixedVsFoldableComparisonRow(
         voltage_v=config.battery.voltage_v,
         throttle=throttle,
         rpm=operating_point.rpm,
         fixed_diameter_m=prop_entry.diameter_m,
-        foldable_effective_diameter_m=foldable.effective_diameter_m,
+        foldable_effective_diameter_m=d_eff,
         fixed_thrust_n=fixed_thrust_n,
         foldable_thrust_n=foldable_thrust_n,
         thrust_difference_percent=compute_thrust_difference_percent(
@@ -106,7 +122,7 @@ def evaluate_fixed_vs_foldable_comparison(
             foldable_thrust_n,
         ),
         theta_deg=foldable.theta_deg,
-        model_note=model_note or COMPARISON_MODEL_NOTE,
+        model_note=comparison_note,
     )
 
 
