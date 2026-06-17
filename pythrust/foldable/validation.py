@@ -6,6 +6,10 @@ import csv
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from .comparison import (
+    COMPARISON_COLUMNS,
+    FixedVsFoldableComparisonRow,
+)
 from .integration import FoldableOperatingPointResult
 from .models import FoldableSweepRow
 
@@ -136,5 +140,42 @@ def write_operating_point_csv(
         writer.writeheader()
         for row in rows:
             writer.writerow(operating_point_to_dict(row, columns))
+
+    return output_path
+
+
+def comparison_to_dict(
+    row: FixedVsFoldableComparisonRow,
+    columns: Sequence[str] = COMPARISON_COLUMNS,
+) -> dict[str, object]:
+    """FixedVsFoldableComparisonRow'u sözlük olarak dönüştür."""
+    full = row.to_dict()
+    return {key: full[key] for key in columns}
+
+
+def validate_comparison_columns(columns: Sequence[str]) -> list[str]:
+    """Karşılaştırma CSV kolonlarını doğrula."""
+    return [col for col in COMPARISON_COLUMNS if col not in columns]
+
+
+def write_comparison_csv(
+    path: str | Path,
+    rows: Sequence[FixedVsFoldableComparisonRow],
+    *,
+    columns: Sequence[str] = COMPARISON_COLUMNS,
+) -> Path:
+    """Sabit vs katlanabilir karşılaştırma sonuçlarını CSV dosyasına yaz."""
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    missing = validate_comparison_columns(columns)
+    if missing:
+        raise ValueError(f"Missing required CSV columns: {missing}")
+
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(columns))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(comparison_to_dict(row, columns))
 
     return output_path

@@ -1,5 +1,13 @@
 """Katlanabilir pervane analiz modülü (TÜBİTAK 2209-B)."""
 
+from .comparison import (
+    COMPARISON_COLUMNS,
+    COMPARISON_MODEL_NOTE,
+    FixedVsFoldableComparisonRow,
+    compare_fixed_vs_foldable_sweep,
+    compute_thrust_difference_percent,
+    evaluate_fixed_vs_foldable_comparison,
+)
 from .effective_diameter import effective_diameter_m
 from .integration import (
     FoldableOperatingPointResult,
@@ -21,14 +29,19 @@ from .performance import estimate_thrust_n, evaluate_sweep, evaluate_sweep_row
 from .validation import (
     OPERATING_POINT_COLUMNS,
     SWEEP_COLUMNS,
+    validate_comparison_columns,
     validate_operating_point_columns,
     validate_sweep_columns,
+    write_comparison_csv,
     write_operating_point_csv,
     write_sweep_csv,
 )
 
 __all__ = [
+    "COMPARISON_COLUMNS",
+    "COMPARISON_MODEL_NOTE",
     "CalibrationConfig",
+    "FixedVsFoldableComparisonRow",
     "FoldableGeometry",
     "FoldableOperatingPointResult",
     "FoldablePropellerConfig",
@@ -37,8 +50,11 @@ __all__ = [
     "KinematicsConfig",
     "OPERATING_POINT_COLUMNS",
     "SWEEP_COLUMNS",
+    "compare_fixed_vs_foldable_sweep",
+    "compute_thrust_difference_percent",
     "effective_diameter_m",
     "estimate_thrust_n",
+    "evaluate_fixed_vs_foldable_comparison",
     "evaluate_foldable_operating_point",
     "evaluate_sweep",
     "evaluate_sweep_row",
@@ -46,8 +62,10 @@ __all__ = [
     "post_process_from_operating_point",
     "solve_pythrust_operating_point",
     "theta_deg_from_rpm",
+    "validate_comparison_columns",
     "validate_operating_point_columns",
     "validate_sweep_columns",
+    "write_comparison_csv",
     "write_operating_point_csv",
     "write_sweep_csv",
 ]
