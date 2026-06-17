@@ -36,6 +36,12 @@ from .performance import (
     estimate_thrust_reference_scaled,
     thrust_model_note,
 )
+from .summary import (
+    DESIGN_VARIANT_SUMMARY_COLUMNS,
+    DesignVariantSummaryRow,
+    summarize_design_variants_from_csv,
+    write_design_variant_summary_csv,
+)
 from .variants import (
     DEFAULT_ROOT_TIP_RATIOS,
     compactness_ratio,
@@ -60,7 +66,9 @@ __all__ = [
     "COMPARISON_MODEL_NOTE",
     "DEFAULT_ROOT_TIP_RATIOS",
     "DESIGN_VARIANT_SWEEP_COLUMNS",
+    "DESIGN_VARIANT_SUMMARY_COLUMNS",
     "CalibrationConfig",
+    "DesignVariantSummaryRow",
     "DesignVariantSweepRow",
     "FixedVsFoldableComparisonRow",
     "FoldableGeometry",
@@ -87,6 +95,7 @@ __all__ = [
     "make_variant_config",
     "post_process_from_operating_point",
     "solve_pythrust_operating_point",
+    "summarize_design_variants_from_csv",
     "sweep_design_variants",
     "thrust_model_note",
     "theta_deg_from_rpm",
@@ -95,6 +104,7 @@ __all__ = [
     "validate_operating_point_columns",
     "validate_sweep_columns",
     "write_comparison_csv",
+    "write_design_variant_summary_csv",
     "write_design_variant_sweep_csv",
     "write_operating_point_csv",
     "write_sweep_csv",
