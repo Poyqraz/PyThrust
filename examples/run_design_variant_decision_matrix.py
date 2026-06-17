@@ -26,26 +26,28 @@ def main() -> None:
             "Run examples/run_design_variant_summary.py first."
         )
 
-    rows = build_decision_matrix_from_csv(summary_path)
+    sweep_path = PROJECT_ROOT / "outputs" / "foldable" / "design_variant_sweep.csv"
+    rows = build_decision_matrix_from_csv(summary_path, sweep_csv_path=sweep_path)
     written = write_design_variant_decision_csv(output_path, rows)
 
     print(f"Input  : {summary_path}")
+    print(f"Sweep  : {sweep_path}")
     print(f"Output : {written}")
     print(f"Rows   : {len(rows)}")
     print()
     print("Karar matrisi:")
     header = (
-        f"{'variant':>22} {'gain%':>7} {'mean_dT':>8} "
-        f"{'perf':>6} {'comp':>6} {'bal':>6} {'flt':>6} {'stw':>6} {'note':>22}"
+        f"{'variant':>22} {'folded':>7} {'gain%':>7} "
+        f"{'start':>6} {'flight':>6} {'deploy':>6} {'takeoff':>7} {'note':>22}"
     )
     print(header)
     for row in rows:
         print(
-            f"{row.variant_id:>22} {row.compactness_gain_percent:7.2f} "
-            f"{row.mean_thrust_difference_percent:8.2f} "
-            f"{row.performance_score:6.3f} {row.compactness_score:6.3f} "
-            f"{row.balanced_score:6.3f} {row.flight_priority_score:6.3f} "
-            f"{row.stowed_priority_score:6.3f} {row.recommendation_note:>22}"
+            f"{row.variant_id:>22} {row.folded_diameter_ratio:7.4f} "
+            f"{row.compactness_gain_percent:7.2f} "
+            f"{row.startup_thrust_score:6.3f} {row.flight_performance_score:6.3f} "
+            f"{row.deployment_score:6.3f} {row.takeoff_transition_score:7.3f} "
+            f"{row.recommendation_note:>22}"
         )
 
 
