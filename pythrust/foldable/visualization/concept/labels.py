@@ -7,8 +7,8 @@ from typing import List
 
 from matplotlib.axes import Axes
 
-from ..state import PropellerVisualState
-from .geometry import blade_width_m, hinge_point, motor_attachment, tip_point
+from .deployment_frame import ConceptDeploymentFrame
+from .geometry import blade_width_m, display_tip_point, hinge_point, motor_attachment
 from .style import ARROW_COLOR, ARROW_LINEWIDTH, ARROW_STYLE, LABEL_COLOR, LABEL_FONTSIZE
 
 
@@ -23,16 +23,16 @@ class ConceptLabel:
     va: str = "center"
 
 
-def static_overview_labels(state: PropellerVisualState) -> List[ConceptLabel]:
+def static_overview_labels(frame: ConceptDeploymentFrame) -> List[ConceptLabel]:
     """Fixed label anchors for the static concept overview figure."""
-    hinge_x, _ = hinge_point(state)
-    tip_x, tip_y = tip_point(state)
-    half_width = blade_width_m(state) / 2.0
-    outer_r, _ = motor_attachment(state)
+    hinge_x, _ = hinge_point(frame)
+    tip_x, tip_y = display_tip_point(frame)
+    half_width = blade_width_m(frame) / 2.0
+    outer_r, _ = motor_attachment(frame)
 
     main_mid_y = half_width * 1.6
     secondary_mid_x = (hinge_x + tip_x) / 2.0
-    secondary_mid_y = tip_y / 2.0 + half_width * 1.8
+    secondary_mid_y = tip_y / 2.0 + half_width * 0.5
 
     return [
         ConceptLabel(
@@ -66,9 +66,9 @@ def static_overview_labels(state: PropellerVisualState) -> List[ConceptLabel]:
     ]
 
 
-def draw_static_labels(axis: Axes, state: PropellerVisualState) -> None:
+def draw_static_labels(axis: Axes, frame: ConceptDeploymentFrame) -> None:
     """Draw bilingual arrows and labels on a concept axis."""
-    for label in static_overview_labels(state):
+    for label in static_overview_labels(frame):
         axis.annotate(
             label.text,
             xy=label.anchor,

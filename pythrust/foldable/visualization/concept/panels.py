@@ -14,8 +14,9 @@ import matplotlib.pyplot as plt
 from ...variants import DEFAULT_ROOT_TIP_RATIOS, variant_id_from_ratios
 from ..panels import DEFAULT_THROTTLE_SWEEP_VALUES
 from ..state import PropellerVisualState
+from .deployment_mapping import frame_from_state
 from .geometry import plot_limits
-from .schematic import draw_state_on_axis
+from .schematic import draw_state_on_axis_from_model
 from .style import (
     BG_WHITE,
     CONCEPT_MODEL_NOTE,
@@ -34,7 +35,7 @@ def _states_for_variant(
 
 
 def _shared_limits(states: Sequence[PropellerVisualState]) -> tuple[float, float, float, float]:
-    limits = [plot_limits(state) for state in states]
+    limits = [plot_limits(frame_from_state(state)) for state in states]
     xmin = min(item[0] for item in limits)
     xmax = max(item[1] for item in limits)
     ymin = min(item[2] for item in limits)
@@ -84,7 +85,7 @@ def draw_throttle_sweep_concept(
     xmin, xmax, ymin, ymax = _shared_limits(selected)
 
     for axis, state in zip(axes.flatten(), selected):
-        draw_state_on_axis(axis, state, title=f"thr={state.throttle:.1f}")
+        draw_state_on_axis_from_model(axis, state, title=f"thr={state.throttle:.1f}")
         axis.set_xlim(xmin, xmax)
         axis.set_ylim(ymin, ymax)
         _compact_subplot_label(axis, state)
@@ -141,7 +142,7 @@ def draw_variant_compare_concept(
     xmin, xmax, ymin, ymax = _shared_limits(selected)
     for axis, state in zip(axes, selected):
         label = f"RT{state.root_ratio}_{state.tip_ratio}"
-        draw_state_on_axis(axis, state, title=label)
+        draw_state_on_axis_from_model(axis, state, title=label)
         axis.set_xlim(xmin, xmax)
         axis.set_ylim(ymin, ymax)
         _compact_subplot_label(axis, state)

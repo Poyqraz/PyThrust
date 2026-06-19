@@ -161,33 +161,41 @@ tip at `(hinge_position_m + L·cosθ, L·sinθ)` with `L = tip_segment_length_m`
 Generate via `examples/run_foldable_visuals.py` after sweep and moment validation
 CSVs exist.
 
-## Concept / Report Schematic Visualization (V1)
+## Concept / Deployment Schematic Visualization (V2)
 
-Presentation-friendly black-filled blade schematics inspired by the TÜBİTAK
-proposal figure. Uses the same `PropellerVisualState` data as radial visuals;
-no physics recomputation.
+Presentation/mechanical explanation visuals with **folded-start interpretation**.
+Uses `PropellerVisualState` plus visualization-only mapping; no physics recomputation.
+
+**Angle mapping (visualization only):**
+
+- Model `theta_deg`: 0° = radial open, negative = folded (analysis frame)
+- `deployment_progress_01 = (theta_deg - theta_min_deg) / (0 - theta_min_deg)`
+- `display_hinge_angle_deg`: 180° at progress=0 (secondary parallel to main, toward hub),
+  0° at progress=1 (secondary radial open)
+
+Concept secondary blade is drawn from `display_hinge_angle_deg`, **not** raw `theta_deg`.
 
 **Component mapping:**
 
 - Main blade / Ana Kanat — hub to hinge (root segment)
-- Secondary blade / İkincil Kanat — hinge to tip (`theta_deg`)
+- Secondary blade / İkincil Kanat — hinge to tip (`display_hinge_angle_deg`)
 - Hinge / Eklem — visible joint marker
 - Motor connection / Motor Bağlantısı — stylized hub hole (illustrative only)
 
 **Concept outputs:**
 
-- `concept_static_overview.png` — bilingual labeled component overview
+- `concept_static_overview.png` — folded-start bilingual labeled overview
 - `concept_state_*.png` — single-state schematic with compact info box
-- `concept_throttle_sweep_*.png` — throttle panel (0.0–1.0)
+- `concept_throttle_sweep_*.png` — throttle panel (deployment progression)
 - `concept_variant_compare_thr_*.png` — RT65_35 … RT85_15 comparison
 
 **Radial vs concept:**
 
-| Aspect | Radial / effective-diameter | Concept / report schematic |
+| Aspect | Radial / effective-diameter (analysis) | Concept deployment (presentation) |
 |---|---|---|
-| Purpose | D_eff analysis and validation | Explanation and presentation |
-| Style | Line-based + measurement circles | Black filled blade shapes |
-| D_eff overlay | Yes | No (info box only) |
+| Purpose | D_eff analysis and validation | Folding/deployment explanation |
+| Secondary angle | Model `theta_deg` | `display_hinge_angle_deg` |
+| Start visual | Model angle at each state | Folded parallel baseline in static overview |
 
 **Limitations:** not CAD, not CFD, not true airfoil geometry; illustrative blade
 width and motor connection in V1.

@@ -88,9 +88,12 @@ def _write_report(
     lines.extend(
         [
             "",
-            "## 2. New concept/report schematic visualizations",
+            "## 2. Concept deployment schematic visualizations",
             "",
-            "Presentation-friendly black-filled blade schematics inspired by the TÜBİTAK proposal figure.",
+            "Presentation/mechanical explanation visuals with folded-start interpretation.",
+            "Secondary blade uses visualization-only `display_hinge_angle_deg` (folded=180°, "
+            "open=0°), mapped from model `theta_deg` via `deployment_progress_01`.",
+            "Static overview shows the near-folded initial configuration.",
             "",
         ]
     )
@@ -114,9 +117,11 @@ def _write_report(
             "",
             "## 3. Radial vs concept visualization",
             "",
-            "| Aspect | Radial / effective-diameter | Concept / report schematic |",
+            "| Aspect | Radial / effective-diameter (analysis) | Concept deployment (presentation) |",
             "|---|---|---|",
-            "| Purpose | Analysis and validation | Explanation and presentation |",
+            "| Purpose | Model interpretation and performance analysis | Mechanical folding/deployment explanation |",
+            "| Secondary blade angle | Model `theta_deg` (0° = radial open) | `display_hinge_angle_deg` (180° = folded parallel) |",
+            "| Start state | Uses model angle directly | Folded/near-folded parallel to main blade |",
             "| Style | Line-based with measurement circles | Black filled blade shapes |",
             "| D_eff overlay | Yes | No (values in info box only) |",
             "| Stowed envelope circle | Yes (when configured) | No |",
@@ -128,8 +133,8 @@ def _write_report(
             "- Not CFD.",
             "- Not true airfoil geometry.",
             "- V1 schematic only; blade width and motor connection are illustrative.",
-            "- Concept schematic is for explanation/presentation; radial visuals remain the "
-            "primary tool for effective-diameter analysis.",
+            "- Concept deployment schematic uses folded-start interpretation; radial visuals "
+            "remain the primary tool for effective-diameter analysis.",
             "",
             "## Defaults used",
             "",

@@ -13,14 +13,17 @@ from matplotlib.axes import Axes
 from matplotlib.patches import Circle, Polygon
 
 from ..state import PropellerVisualState
+from .deployment_frame import ConceptDeploymentFrame
+from .deployment_mapping import frame_from_state
 from .geometry import (
     concept_info_lines,
+    frame_for_state,
     hinge_marker,
     main_blade_polygon,
     motor_attachment,
     plot_limits,
     secondary_blade_polygon,
-    static_reference_state,
+    static_folded_frame,
 )
 from .labels import draw_static_labels
 from .style import (
@@ -35,9 +38,9 @@ from .style import (
 )
 
 
-def _draw_blade_parts(axis: Axes, state: PropellerVisualState) -> None:
-    main_poly = main_blade_polygon(state)
-    secondary_poly = secondary_blade_polygon(state)
+def _draw_blade_parts(axis: Axes, frame: ConceptDeploymentFrame) -> None:
+    main_poly = main_blade_polygon(frame)
+    secondary_poly = secondary_blade_polygon(frame)
     axis.add_patch(
         Polygon(
             main_poly,
@@ -55,11 +58,11 @@ def _draw_blade_parts(axis: Axes, state: PropellerVisualState) -> None:
             facecolor=FACE_BLACK,
             edgecolor=EDGE_BLACK,
             linewidth=0.8,
-            zorder=2,
+            zorder=3,
         )
     )
 
-    outer, inner = motor_attachment(state)
+    outer, inner = motor_attachment(frame)
     axis.add_patch(
         Circle(
             (outer[0], outer[1]),
@@ -81,7 +84,7 @@ def _draw_blade_parts(axis: Axes, state: PropellerVisualState) -> None:
         )
     )
 
-    hx, hy, hr = hinge_marker(state)
+    hx, hy, hr = hinge_marker(frame)
     axis.add_patch(
         Circle(
             (hx, hy),
@@ -96,45 +99,43 @@ def _draw_blade_parts(axis: Axes, state: PropellerVisualState) -> None:
 
 def _prepare_axis(
     axis: Axes,
-    state: PropellerVisualState,
+    frame: ConceptDeploymentFrame,
     *,
     label_margin: bool = False,
     title: str | None = None,
-    show_axes: bool = False,
 ) -> None:
-    xmin, xmax, ymin, ymax = plot_limits(state, label_margin=label_margin)
+    xmin, xmax, ymin, ymax = plot_limits(frame, label_margin=label_margin)
     axis.set_xlim(xmin, xmax)
     axis.set_ylim(ymin, ymax)
     axis.set_aspect("equal", adjustable="box")
     axis.set_facecolor(BG_WHITE)
-    if not show_axes:
-        axis.axis("off")
+    axis.axis("off")
     if title:
         axis.set_title(title, fontsize=10, pad=8)
 
 
 def draw_state_on_axis(
     axis: Axes,
-    state: PropellerVisualState,
+    frame: ConceptDeploymentFrame,
     *,
     title: str | None = None,
     show_info_box: bool = False,
     show_static_labels: bool = False,
 ) -> None:
-    """Draw concept schematic on an existing matplotlib axis."""
+    """Draw concept deployment schematic on an existing matplotlib axis."""
     _prepare_axis(
         axis,
-        state,
+        frame,
         label_margin=show_static_labels,
         title=title,
     )
-    _draw_blade_parts(axis, state)
+    _draw_blade_parts(axis, frame)
 
     if show_static_labels:
-        draw_static_labels(axis, state)
+        draw_static_labels(axis, frame)
 
     if show_info_box:
-        info_text = "\n".join(concept_info_lines(state))
+        info_text = "\n".join(concept_info_lines(frame))
         axis.text(
             0.98,
             0.02,
@@ -149,17 +150,35 @@ def draw_state_on_axis(
         )
 
 
+def draw_state_on_axis_from_model(
+    axis: Axes,
+    state: PropellerVisualState,
+    *,
+    title: str | None = None,
+    show_info_box: bool = False,
+    show_static_labels: bool = False,
+) -> None:
+    """Draw concept schematic from a model PropellerVisualState."""
+    draw_state_on_axis(
+        axis,
+        frame_from_state(state),
+        title=title,
+        show_info_box=show_info_box,
+        show_static_labels=show_static_labels,
+    )
+
+
 def draw_static_overview(*, output_path: str | Path) -> Path:
-    """Render static concept overview with bilingual component labels."""
+    """Render static concept overview with folded-start configuration."""
     figure_path = Path(output_path)
     figure_path.parent.mkdir(parents=True, exist_ok=True)
 
-    state = static_reference_state()
+    frame = static_folded_frame()
     fig, axis = plt.subplots(figsize=STATIC_FIGSIZE)
     draw_state_on_axis(
         axis,
-        state,
-        title="Foldable Propeller — Concept Overview",
+        frame,
+        title="Foldable Propeller — Concept Overview (folded start)",
         show_static_labels=True,
     )
     fig.text(
@@ -188,11 +207,12 @@ def draw_single_state_concept(
     figure_path = Path(output_path)
     figure_path.parent.mkdir(parents=True, exist_ok=True)
 
+    frame = frame_for_state(state)
     fig, axis = plt.subplots(figsize=STATE_FIGSIZE)
     panel_title = title or f"{state.variant_id} @ throttle={state.throttle:.2f}"
     draw_state_on_axis(
         axis,
-        state,
+        frame,
         title=panel_title,
         show_info_box=True,
     )

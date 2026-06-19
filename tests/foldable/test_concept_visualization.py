@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
-import math
 from pathlib import Path
 
 import pytest
 
+from pythrust.foldable.visualization.concept.deployment_mapping import (
+    deployment_progress_from_theta,
+    display_hinge_angle_from_progress,
+    frame_from_state,
+    frame_folded_reference,
+)
 from pythrust.foldable.visualization.concept.geometry import (
+    display_tip_point,
     main_blade_polygon,
     secondary_blade_polygon,
-    static_reference_state,
-    tip_point,
+    static_folded_frame,
 )
 from pythrust.foldable.visualization.concept.panels import (
     draw_throttle_sweep_concept,
@@ -21,15 +26,12 @@ from pythrust.foldable.visualization.concept.schematic import (
     draw_single_state_concept,
     draw_static_overview,
 )
+from pythrust.foldable.visualization.concept.style import (
+    CONCEPT_FOLDED_DISPLAY_ANGLE_DEG,
+    CONCEPT_OPEN_DISPLAY_ANGLE_DEG,
+)
 from pythrust.foldable.visualization.io import join_visual_states
 from pythrust.foldable.visualization.state import PropellerVisualState
-
-CONCEPT_OUTPUT_NAMES = (
-    "concept_static_overview.png",
-    "concept_state_TIP_HINGED_250_RT75_25_thr_0.6.png",
-    "concept_throttle_sweep_TIP_HINGED_250_RT75_25.png",
-    "concept_variant_compare_thr_0.6.png",
-)
 
 
 def _rt75_state(*, theta_deg: float, effective_diameter_m: float) -> PropellerVisualState:
@@ -48,38 +50,65 @@ def _rt75_state(*, theta_deg: float, effective_diameter_m: float) -> PropellerVi
         foldable_thrust_n=5.8,
         hinge_position_m=0.09375,
         tip_segment_length_m=0.03125,
+        theta_min_deg=-45.0,
     )
 
 
-def test_main_blade_polygon_has_four_vertices() -> None:
-    state = static_reference_state()
-    polygon = main_blade_polygon(state)
-    assert len(polygon) == 4
+def test_folded_progress_maps_to_display_angle_180() -> None:
+    progress = deployment_progress_from_theta(-45.0, theta_min_deg=-45.0)
+    assert progress == pytest.approx(0.0)
+    assert display_hinge_angle_from_progress(progress) == pytest.approx(
+        CONCEPT_FOLDED_DISPLAY_ANGLE_DEG
+    )
 
 
-def test_secondary_blade_open_tip_reaches_open_radius() -> None:
-    state = static_reference_state()
-    tip_x, tip_y = tip_point(state)
+def test_open_progress_maps_to_display_angle_0() -> None:
+    progress = deployment_progress_from_theta(0.0, theta_min_deg=-45.0)
+    assert progress == pytest.approx(1.0)
+    assert display_hinge_angle_from_progress(progress) == pytest.approx(
+        CONCEPT_OPEN_DISPLAY_ANGLE_DEG
+    )
+
+
+def test_folded_display_tip_points_toward_hub() -> None:
+    frame = frame_folded_reference()
+    tip_x, tip_y = display_tip_point(frame)
+    assert tip_x < frame.hinge_position_m
+    assert tip_y == pytest.approx(0.0, abs=1e-9)
+
+
+def test_open_display_tip_reaches_radial_extension() -> None:
+    state = _rt75_state(theta_deg=0.0, effective_diameter_m=0.25)
+    frame = frame_from_state(state)
+    tip_x, tip_y = display_tip_point(frame)
     assert tip_x == pytest.approx(0.125)
     assert tip_y == pytest.approx(0.0)
 
 
-def test_secondary_blade_folded_tip_y_is_negative() -> None:
-    state = _rt75_state(theta_deg=-45.0, effective_diameter_m=0.235)
-    _, tip_y = tip_point(state)
-    assert tip_y < 0.0
+def test_static_folded_frame_is_fully_folded() -> None:
+    frame = static_folded_frame()
+    assert frame.deployment_progress_01 == pytest.approx(0.0)
+    assert frame.display_hinge_angle_deg == pytest.approx(180.0)
 
 
-def test_secondary_polygon_follows_theta() -> None:
-    state = _rt75_state(theta_deg=-30.0, effective_diameter_m=0.24)
-    polygon = secondary_blade_polygon(state)
-    centroid_x = sum(point[0] for point in polygon) / len(polygon)
-    centroid_y = sum(point[1] for point in polygon) / len(polygon)
-    tip_x, tip_y = tip_point(state)
-    mid_x = (state.hinge_position_m + tip_x) / 2.0
-    mid_y = tip_y / 2.0
-    assert centroid_x == pytest.approx(mid_x, rel=0.05)
-    assert math.copysign(1.0, centroid_y) == math.copysign(1.0, mid_y)
+def test_main_blade_polygon_has_four_vertices() -> None:
+    frame = static_folded_frame()
+    assert len(main_blade_polygon(frame)) == 4
+
+
+def test_secondary_blade_polygon_has_four_vertices() -> None:
+    frame = static_folded_frame()
+    assert len(secondary_blade_polygon(frame)) == 4
+
+
+def test_partial_deployment_tip_between_folded_and_open() -> None:
+    state = _rt75_state(theta_deg=-22.5, effective_diameter_m=0.24)
+    frame = frame_from_state(state)
+    tip_x, _ = display_tip_point(frame)
+    folded_x, _ = display_tip_point(frame_folded_reference())
+    open_state = _rt75_state(theta_deg=0.0, effective_diameter_m=0.25)
+    open_x, _ = display_tip_point(frame_from_state(open_state))
+    assert folded_x < tip_x < open_x
 
 
 def test_draw_static_overview_writes_png(tmp_path: Path) -> None:
@@ -122,12 +151,3 @@ def test_concept_panels_write_pngs(tmp_path: Path) -> None:
     )
     assert sweep_png.stat().st_size > 0
     assert compare_png.stat().st_size > 0
-
-
-def test_concept_output_filenames_are_stable() -> None:
-    assert CONCEPT_OUTPUT_NAMES == (
-        "concept_static_overview.png",
-        "concept_state_TIP_HINGED_250_RT75_25_thr_0.6.png",
-        "concept_throttle_sweep_TIP_HINGED_250_RT75_25.png",
-        "concept_variant_compare_thr_0.6.png",
-    )

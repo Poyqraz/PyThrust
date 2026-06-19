@@ -27,7 +27,13 @@ SUBPLOT_LABEL_FONTSIZE = 7
 ARROW_STYLE = "-|>"
 ARROW_LINEWIDTH = 0.9
 
+# Concept deployment display angles (visualization only; not model physics).
+# Folded: secondary blade parallel to main blade, pointing toward hub (-x).
+# Open: secondary blade extends radially outward (+x).
+CONCEPT_FOLDED_DISPLAY_ANGLE_DEG = 180.0
+CONCEPT_OPEN_DISPLAY_ANGLE_DEG = 0.0
+
 CONCEPT_MODEL_NOTE = (
-    "Concept schematic for explanation/presentation only; "
+    "Concept deployment schematic (folded-start interpretation); "
     "not CAD, not CFD, illustrative blade width."
 )

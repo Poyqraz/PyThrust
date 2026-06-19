@@ -6,6 +6,8 @@ import math
 from typing import List, Tuple
 
 from ..state import PropellerVisualState
+from .deployment_frame import ConceptDeploymentFrame
+from .deployment_mapping import frame_folded_reference, frame_from_state
 from .style import (
     BLADE_WIDTH_FRACTION,
     HINGE_MARKER_RADIUS_FRACTION,
@@ -18,8 +20,8 @@ Polygon = List[Point]
 Circle = Tuple[float, float, float]
 
 
-def blade_width_m(state: PropellerVisualState) -> float:
-    return state.diameter_open_m * BLADE_WIDTH_FRACTION
+def blade_width_m(frame: ConceptDeploymentFrame) -> float:
+    return frame.diameter_open_m * BLADE_WIDTH_FRACTION
 
 
 def _segment_polygon(start: Point, end: Point, half_width: float) -> Polygon:
@@ -39,60 +41,55 @@ def _segment_polygon(start: Point, end: Point, half_width: float) -> Polygon:
     ]
 
 
-def hinge_point(state: PropellerVisualState) -> Point:
-    return _hinge_point(state)
+def hinge_point(frame: ConceptDeploymentFrame) -> Point:
+    return (frame.hinge_position_m, 0.0)
 
 
-def tip_point(state: PropellerVisualState) -> Point:
-    return _tip_point(state)
-
-
-def _hinge_point(state: PropellerVisualState) -> Point:
-    return (state.hinge_position_m, 0.0)
-
-
-def _tip_point(state: PropellerVisualState) -> Point:
-    theta_rad = math.radians(state.theta_deg)
-    hinge_x = state.hinge_position_m
-    tip_x = hinge_x + state.tip_segment_length_m * math.cos(theta_rad)
-    tip_y = state.tip_segment_length_m * math.sin(theta_rad)
+def display_tip_point(frame: ConceptDeploymentFrame) -> Point:
+    """Secondary blade tip from visualization-only display_hinge_angle_deg."""
+    phi_rad = math.radians(frame.display_hinge_angle_deg)
+    hinge_x = frame.hinge_position_m
+    length = frame.tip_segment_length_m
+    tip_x = hinge_x + length * math.cos(phi_rad)
+    tip_y = length * math.sin(phi_rad)
     return (tip_x, tip_y)
 
 
-def main_blade_polygon(state: PropellerVisualState) -> Polygon:
+def main_blade_polygon(frame: ConceptDeploymentFrame) -> Polygon:
     """Hub to hinge — Ana Kanat / Main blade."""
-    half_width = blade_width_m(state) / 2.0
-    return _segment_polygon((0.0, 0.0), _hinge_point(state), half_width)
+    half_width = blade_width_m(frame) / 2.0
+    return _segment_polygon((0.0, 0.0), hinge_point(frame), half_width)
 
 
-def secondary_blade_polygon(state: PropellerVisualState) -> Polygon:
-    """Hinge to tip — İkincil Kanat / Secondary blade (follows theta_deg)."""
-    half_width = blade_width_m(state) / 2.0
-    return _segment_polygon(_hinge_point(state), _tip_point(state), half_width)
+def secondary_blade_polygon(frame: ConceptDeploymentFrame) -> Polygon:
+    """Hinge to tip — İkincil Kanat / Secondary blade (concept deployment angle)."""
+    half_width = blade_width_m(frame) / 2.0
+    return _segment_polygon(hinge_point(frame), display_tip_point(frame), half_width)
 
 
-def hinge_marker(state: PropellerVisualState) -> Circle:
+def hinge_marker(frame: ConceptDeploymentFrame) -> Circle:
     """Visible hinge joint at (cx, cy, radius_m)."""
-    hinge_x, hinge_y = _hinge_point(state)
-    radius = state.diameter_open_m * HINGE_MARKER_RADIUS_FRACTION
+    hinge_x, hinge_y = hinge_point(frame)
+    radius = frame.diameter_open_m * HINGE_MARKER_RADIUS_FRACTION
     return (hinge_x, hinge_y, radius)
 
 
-def motor_attachment(state: PropellerVisualState) -> tuple[Circle, Circle]:
+def motor_attachment(frame: ConceptDeploymentFrame) -> tuple[Circle, Circle]:
     """Stylized motor hub (outer disk, inner hole) centered at hub."""
-    outer_r = state.diameter_open_m * MOTOR_OUTER_RADIUS_FRACTION
-    inner_r = state.diameter_open_m * MOTOR_INNER_RADIUS_FRACTION
+    outer_r = frame.diameter_open_m * MOTOR_OUTER_RADIUS_FRACTION
+    inner_r = frame.diameter_open_m * MOTOR_INNER_RADIUS_FRACTION
     return ((0.0, 0.0, outer_r), (0.0, 0.0, inner_r))
 
 
-def plot_limits(state: PropellerVisualState, *, label_margin: bool = False) -> tuple[float, float, float, float]:
+def plot_limits(frame: ConceptDeploymentFrame, *, label_margin: bool = False) -> tuple[float, float, float, float]:
     """Symmetric axis limits for concept schematics."""
-    tip_x, tip_y = _tip_point(state)
+    tip_x, tip_y = display_tip_point(frame)
     span = max(
-        state.diameter_open_m / 2.0,
+        frame.diameter_open_m / 2.0,
         abs(tip_x),
         abs(tip_y),
-        state.hinge_position_m + state.tip_segment_length_m,
+        frame.hinge_position_m + frame.tip_segment_length_m,
+        frame.hinge_position_m,
     )
     margin_fraction = 0.35 if label_margin else 0.15
     margin = span * margin_fraction
@@ -100,36 +97,25 @@ def plot_limits(state: PropellerVisualState, *, label_margin: bool = False) -> t
     return (-limit * 0.15, limit, -limit, limit * 0.85)
 
 
-def static_reference_state() -> PropellerVisualState:
-    """Fully open RT75_25 reference geometry for static concept overview."""
-    return PropellerVisualState(
-        variant_id="TIP_HINGED_250_RT75_25",
-        root_ratio=75,
-        tip_ratio=25,
-        throttle=0.0,
-        rpm=0.0,
-        theta_deg=0.0,
-        effective_diameter_m=0.25,
-        opening_moment_nm=0.0,
-        resisting_moment_nm=0.0,
-        moment_margin_nm=0.0,
-        hinge_state="fully_open",
-        foldable_thrust_n=0.0,
-        hinge_position_m=0.09375,
-        tip_segment_length_m=0.03125,
-        diameter_open_m=0.25,
-    )
-
-
-def concept_info_lines(state: PropellerVisualState) -> List[str]:
+def concept_info_lines(frame: ConceptDeploymentFrame) -> List[str]:
     """Compact info box lines for single-state concept schematic."""
     return [
-        f"{state.variant_id}",
-        f"thr={state.throttle:.2f}  rpm={state.rpm:.0f}",
-        f"θ={state.theta_deg:.1f}°  D_eff={state.effective_diameter_m:.3f} m",
-        f"M_open={state.opening_moment_nm:.3f} Nm",
-        f"M_resist={state.resisting_moment_nm:.3f} Nm",
-        f"margin={state.moment_margin_nm:.3f} Nm",
-        f"hinge: {state.hinge_state}",
-        f"T_fold={state.foldable_thrust_n:.2f} N",
+        f"{frame.variant_id}",
+        f"thr={frame.throttle:.2f}  rpm={frame.rpm:.0f}",
+        f"hinge: {frame.hinge_state}",
+        f"θ_model={frame.theta_deg:.1f}°  φ_display={frame.display_hinge_angle_deg:.1f}°",
+        f"D_eff={frame.effective_diameter_m:.3f} m",
+        f"M_open={frame.opening_moment_nm:.3f} Nm",
+        f"M_resist={frame.resisting_moment_nm:.3f} Nm",
+        f"T_fold={frame.foldable_thrust_n:.2f} N",
     ]
+
+
+def static_folded_frame() -> ConceptDeploymentFrame:
+    """Folded-start reference for static concept overview."""
+    return frame_folded_reference()
+
+
+def frame_for_state(state: PropellerVisualState) -> ConceptDeploymentFrame:
+    """Map model visual state to concept deployment frame."""
+    return frame_from_state(state)
