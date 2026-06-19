@@ -20,7 +20,7 @@ DEFAULT_THETA_MIN_DEG = -45.0
 MODEL_NOTE_LINES: tuple[str, ...] = (
     "Model: reference_scaled thrust",
     "No CFD/BEMT/experiment yet",
-    "Theta: RPM-only kinematics",
+    "Theta: moment-based hinge balance (V1)",
 )
 
 FOLDABLE_REPORT_FIGURE_NAMES: tuple[str, ...] = (
@@ -39,7 +39,7 @@ SWEEP_THROTTLE_PLOTS: tuple[tuple[str, str, str, str], ...] = (
         "theta_deg",
         "theta_deg_vs_throttle_by_variant.png",
         "Hinge angle vs throttle",
-        "RPM-only hinge kinematics; identical across variants at equal throttle.",
+        "Geometry-dependent moment balance; variants may differ at equal throttle.",
     ),
     (
         "effective_diameter_m",
@@ -252,11 +252,11 @@ def plot_theta_vs_throttle(
             throttles,
             values,
             marker="o",
-            label="All variants (RPM-only kinematics)",
+            label="All variants (shared kinematics)",
             color="tab:blue",
         )
         title = "Hinge angle vs throttle (shared kinematics)"
-        note = "Same RPM-only kinematics for all variants"
+        note = "Same kinematics curve for all variants at equal throttle"
     else:
         for variant_id in sorted(grouped):
             rows = grouped[variant_id]

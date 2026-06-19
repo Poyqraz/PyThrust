@@ -114,7 +114,8 @@ def test_best_flight_performance_score(summary_csv) -> None:
     summary_path, sweep_path = summary_csv
     rows = build_decision_matrix_from_csv(summary_path, sweep_csv_path=sweep_path)
     best_flight = max(rows, key=lambda row: row.flight_performance_score)
-    assert best_flight.variant_id == "TIP_HINGED_250_RT85_15"
+    # Moment-based kinematics: longer tip segment opens more at equal RPM → better thrust.
+    assert best_flight.variant_id == "TIP_HINGED_250_RT65_35"
 
 
 def test_decision_csv_columns(summary_csv, tmp_path) -> None:

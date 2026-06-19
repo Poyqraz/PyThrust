@@ -29,6 +29,7 @@ def geometry_from_root_tip_ratios(
     diameter_open_m: float = 0.25,
     tip_segment_mass_kg: float = 0.002,
     blade_count: int = 2,
+    base_tip_fraction: float | None = None,
 ) -> FoldableGeometry:
     """Açık çap sabitken kök/uç yüzde oranlarından geometri üret.
 
@@ -43,14 +44,20 @@ def geometry_from_root_tip_ratios(
     tip_fraction = tip_ratio / 100.0
     hinge_position_m = open_radius_m * root_fraction
     tip_segment_length_m = open_radius_m * tip_fraction
+    tip_segment_cg_from_hinge_m = tip_segment_length_m / 2.0
+
+    scaled_mass_kg = tip_segment_mass_kg
+    if base_tip_fraction is not None and base_tip_fraction > 0.0:
+        scaled_mass_kg = tip_segment_mass_kg * (tip_fraction / base_tip_fraction)
 
     return FoldableGeometry(
         diameter_open_m=diameter_open_m,
         main_blade_length_m=hinge_position_m,
         tip_segment_length_m=tip_segment_length_m,
         hinge_position_m=hinge_position_m,
-        tip_segment_mass_kg=tip_segment_mass_kg,
+        tip_segment_mass_kg=scaled_mass_kg,
         blade_count=blade_count,
+        tip_segment_cg_from_hinge_m=tip_segment_cg_from_hinge_m,
     )
 
 
@@ -60,23 +67,31 @@ def make_variant_config(
     tip_ratio: int,
 ) -> FoldablePropellerConfig:
     """Temel config'den kök/uç oranı varyantı oluştur."""
+    base_open_radius_m = base_config.geometry.diameter_open_m / 2.0
+    base_tip_fraction = base_config.geometry.tip_segment_length_m / base_open_radius_m
     geometry = geometry_from_root_tip_ratios(
         root_ratio,
         tip_ratio,
         diameter_open_m=base_config.geometry.diameter_open_m,
         tip_segment_mass_kg=base_config.geometry.tip_segment_mass_kg,
         blade_count=base_config.geometry.blade_count,
+        base_tip_fraction=base_tip_fraction,
     )
     variant_id = variant_id_from_ratios(root_ratio, tip_ratio)
     description = (
         f"Uçtan mafsallı katlanabilir pervane — {root_ratio}/{tip_ratio} "
         f"kök/uç, açık çap {geometry.diameter_open_m:.2f} m"
     )
+    hinge = replace(
+        base_config.hinge,
+        hinge_radius_m=geometry.hinge_position_m,
+    )
     return replace(
         base_config,
         id=variant_id,
         description=description,
         geometry=geometry,
+        hinge=hinge,
     )
 
 

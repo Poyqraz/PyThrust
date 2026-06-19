@@ -7,15 +7,20 @@
     "tip_segment_length_m": 0.025,
     "hinge_position_m": 0.10,
     "tip_segment_mass_kg": 0.002,
+    "tip_segment_cg_from_hinge_m": 0.0125,
     "blade_count": 2
   },
   "hinge": {
     "theta_min_deg": -45.0,
     "theta_max_deg": 0.0,
     "rpm_threshold": 2000.0,
-    "rpm_full_open": 8000.0
+    "rpm_full_open": 8000.0,
+    "hinge_radius_m": 0.10,
+    "hinge_stiffness_nm_per_rad": 0.55,
+    "hinge_friction_nm": 0.007
   },
   "kinematics": {
+    "kinematics_mode": "moment_based",
     "model": "linear_saturation",
     "k_open": 1.0
   },
@@ -23,7 +28,7 @@
     "k_thrust": 1.0,
     "k_torque": 1.0,
     "ct_ref": 0.10,
-    "model_note": "V1 linear RPM hinge model, geometric D_eff",
+    "model_note": "V2 moment-based hinge kinematics, reference_scaled thrust, geometric D_eff",
     "thrust_model_mode": "reference_scaled",
     "eta_hinge": 1.0,
     "eta_profile": 1.0,

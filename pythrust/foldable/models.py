@@ -18,6 +18,7 @@ class FoldableGeometry:
     hinge_position_m: float
     tip_segment_mass_kg: float
     blade_count: int = 2
+    tip_segment_cg_from_hinge_m: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,9 @@ class HingeConfig:
     theta_max_deg: float
     rpm_threshold: float
     rpm_full_open: float
+    hinge_radius_m: float = 0.0
+    hinge_stiffness_nm_per_rad: float = 0.008
+    hinge_friction_nm: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -36,6 +40,7 @@ class KinematicsConfig:
 
     model: str
     k_open: float = 1.0
+    kinematics_mode: str = "rpm_only"
 
 
 @dataclass(frozen=True)
@@ -125,6 +130,17 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
     geometry_raw = _require_mapping(raw, "geometry")
     hinge_raw = _require_mapping(raw, "hinge")
     kinematics_raw = _require_mapping(raw, "kinematics")
+
+    tip_segment_length_m = float(geometry_raw["tip_segment_length_m"])
+    hinge_position_m = float(geometry_raw["hinge_position_m"])
+    tip_segment_cg_from_hinge_m = float(
+        geometry_raw.get(
+            "tip_segment_cg_from_hinge_m",
+            tip_segment_length_m / 2.0,
+        )
+    )
+    hinge_radius_m = float(hinge_raw.get("hinge_radius_m", hinge_position_m))
+    kinematics_mode = str(kinematics_raw.get("kinematics_mode", "rpm_only"))
     calibration_raw = _require_mapping(raw, "calibration")
     motor_raw = _require_mapping(raw, "motor")
     battery_raw = _require_mapping(raw, "battery")
@@ -136,20 +152,27 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
         geometry=FoldableGeometry(
             diameter_open_m=float(geometry_raw["diameter_open_m"]),
             main_blade_length_m=float(geometry_raw["main_blade_length_m"]),
-            tip_segment_length_m=float(geometry_raw["tip_segment_length_m"]),
-            hinge_position_m=float(geometry_raw["hinge_position_m"]),
+            tip_segment_length_m=tip_segment_length_m,
+            hinge_position_m=hinge_position_m,
             tip_segment_mass_kg=float(geometry_raw["tip_segment_mass_kg"]),
             blade_count=int(geometry_raw.get("blade_count", 2)),
+            tip_segment_cg_from_hinge_m=tip_segment_cg_from_hinge_m,
         ),
         hinge=HingeConfig(
             theta_min_deg=float(hinge_raw["theta_min_deg"]),
             theta_max_deg=float(hinge_raw["theta_max_deg"]),
             rpm_threshold=float(hinge_raw["rpm_threshold"]),
             rpm_full_open=float(hinge_raw["rpm_full_open"]),
+            hinge_radius_m=hinge_radius_m,
+            hinge_stiffness_nm_per_rad=float(
+                hinge_raw.get("hinge_stiffness_nm_per_rad", 0.008)
+            ),
+            hinge_friction_nm=float(hinge_raw.get("hinge_friction_nm", 0.0)),
         ),
         kinematics=KinematicsConfig(
             model=str(kinematics_raw.get("model", "linear_saturation")),
             k_open=float(kinematics_raw.get("k_open", 1.0)),
+            kinematics_mode=kinematics_mode,
         ),
         calibration=CalibrationConfig(
             k_thrust=float(calibration_raw["k_thrust"]),

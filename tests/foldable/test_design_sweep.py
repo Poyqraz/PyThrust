@@ -99,3 +99,16 @@ def test_thrust_difference_matches_formula(project_config, prop_entry) -> None:
             row.foldable_thrust_n,
         )
         assert math.isclose(row.thrust_difference_percent, expected, rel_tol=1e-9)
+
+
+def test_variants_have_different_theta_at_same_throttle(project_config, prop_entry) -> None:
+    assert project_config.kinematics.kinematics_mode == "moment_based"
+    rows = sweep_design_variants(
+        project_config,
+        prop_entry,
+        throttle_values=[0.5],
+    )
+    theta_by_variant = {row.variant_id: row.theta_deg for row in rows}
+    assert len(theta_by_variant) >= 2
+    theta_values = list(theta_by_variant.values())
+    assert max(theta_values) > min(theta_values)

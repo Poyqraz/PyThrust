@@ -60,6 +60,41 @@ effective_diameter_m = diameter_open_m
 
 Örnek: `diameter_open_m = 0.25 m` için tam açıkta efektif çap 0.25 m olmalıdır.
 
+## Mafsal Kinematiği
+
+`kinematics.kinematics_mode` ile seçilir:
+
+| Mod | Açıklama |
+|---|---|
+| `rpm_only` | RPM eşiklerine bağlı doğrusal doygunluk; tüm varyantlarda aynı θ(RPM) |
+| `moment_based` | Geometriye bağlı moment dengesi; varyantlar farklı θ üretebilir |
+
+### Moment-based hinge kinematics (V2)
+
+Basit denge modeli (CFD/BEMT/deneysel doğrulama henüz yok):
+
+```
+omega = rpm * 2π / 60
+M_open = m_tip * omega² * r_cg * lever_arm
+M_resist(theta) = k_hinge * (theta_rad - theta_min_rad) + M_friction
+```
+
+| Parametre | Config alanı |
+|---|---|
+| `m_tip` | `geometry.tip_segment_mass_kg` |
+| `r_cg` | `geometry.tip_segment_cg_from_hinge_m` (varsayılan: `tip_segment_length_m / 2`) |
+| `lever_arm` | `tip_segment_length_m` (V1 varsayımı) |
+| `k_hinge` | `hinge.hinge_stiffness_nm_per_rad` |
+| `M_friction` | `hinge.hinge_friction_nm` |
+| `hinge_radius_m` | `hinge.hinge_radius_m` (varsayılan: `hinge_position_m`; ileride radyal terim) |
+
+Çözüm: `M_open ≤ M_friction` veya `rpm ≤ 0` → `theta_min_deg`; aksi halde
+`theta_rad = theta_min_rad + (M_open - M_friction) / k_hinge`, sonra
+`[theta_min_deg, theta_max_deg]` aralığına kısıtlanır.
+
+`rpm_only` modu geriye dönük uyumluluk için korunur; `rpm_threshold` ve
+`rpm_full_open` yalnızca bu modda kullanılır.
+
 ## Çıktı Dosyaları
 
 Sweep ve karşılaştırma tabloları `outputs/foldable/` altında CSV olarak
@@ -74,5 +109,6 @@ Genişletilmiş kolonlar (ileride PyThrust entegrasyonu ile):
 ## Model Sürümü
 
 V1 modeli basitleştirilmiş ve kalibre edilebilir bir sayısal yaklaşımdır.
-CFD, BEMT veya deneysel Ct/Cp verileri ileride aynı arayüz üzerinden
-entegre edilebilir.
+V2 moment-based kinematics geometriye bağlı θ hesabı ekler; thrust modeli hâlâ
+`reference_scaled` yaklaşımındadır. CFD, BEMT veya deneysel Ct/Cp verileri
+ileride aynı arayüz üzerinden entegre edilebilir.
