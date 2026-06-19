@@ -9,6 +9,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from pythrust.foldable.models import load_config  # noqa: E402
 from pythrust.foldable.visualization.io import join_visual_states, state_for  # noqa: E402
 from pythrust.foldable.visualization.panels import (  # noqa: E402
     DEFAULT_THROTTLE_SWEEP_VALUES,
@@ -23,6 +24,7 @@ MOMENT_CSV = PROJECT_ROOT / "outputs" / "foldable" / "moment_kinematics_validati
 PARAMS_CSV = PROJECT_ROOT / "outputs" / "foldable" / "variant_physical_parameters.csv"
 
 DEFAULT_VARIANT_ID = "TIP_HINGED_250_RT75_25"
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "foldable" / "TIP_HINGED_250_V01.json"
 DEFAULT_SINGLE_THROTTLE = 0.6
 DEFAULT_COMPARE_THROTTLE = 0.6
 REPORT_NAME = "foldable_visuals_report.md"
@@ -59,7 +61,9 @@ def _write_report(
         "",
         "## Model notes",
         "",
-        "- 2D side elevation schematic (V1); physics model unchanged",
+        "- 2D radial schematic / effective-diameter visualization; physics model unchanged",
+        "- D_eff is aerodynamic effective diameter during flight startup; "
+        "stowed_envelope_diameter_m is proposal storage envelope (visualization only).",
         "- V1 moment model: hinge_radius_m is stored but not used in opening moment calculation.",
         "- active_window_diameter_growth_score measures observed diameter growth over sampled "
         "throttle values, not total stowed-to-open geometric deployment.",
@@ -91,11 +95,21 @@ def main() -> None:
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    config = load_config(DEFAULT_CONFIG_PATH)
+    diameter_open_m = config.geometry.diameter_open_m
+    stowed_envelope_diameter_m = config.geometry.stowed_envelope_diameter_m
+    theta_min_deg = config.hinge.theta_min_deg
+    blade_count = config.geometry.blade_count
+
     states = join_visual_states(
         SWEEP_CSV,
         MOMENT_CSV,
         PARAMS_CSV,
         throttle_values=list(DEFAULT_THROTTLE_SWEEP_VALUES),
+        diameter_open_m=diameter_open_m,
+        stowed_envelope_diameter_m=stowed_envelope_diameter_m,
+        theta_min_deg=theta_min_deg,
+        blade_count=blade_count,
     )
 
     single = state_for(states, DEFAULT_VARIANT_ID, DEFAULT_SINGLE_THROTTLE)

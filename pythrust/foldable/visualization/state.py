@@ -24,6 +24,7 @@ class PropellerVisualState:
     hinge_position_m: float
     tip_segment_length_m: float
     diameter_open_m: float = 0.25
+    stowed_envelope_diameter_m: float | None = None
     blade_count: int = 2
     theta_min_deg: float = -45.0
 

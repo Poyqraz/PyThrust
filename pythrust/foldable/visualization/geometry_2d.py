@@ -54,6 +54,7 @@ def open_reference_polylines(state: PropellerVisualState) -> List[Polyline]:
         hinge_position_m=state.hinge_position_m,
         tip_segment_length_m=state.tip_segment_length_m,
         diameter_open_m=state.diameter_open_m,
+        stowed_envelope_diameter_m=state.stowed_envelope_diameter_m,
         blade_count=state.blade_count,
         theta_min_deg=state.theta_min_deg,
     )
@@ -70,15 +71,28 @@ def open_radius_circle(state: PropellerVisualState) -> Tuple[float, float, float
     return (0.0, 0.0, state.diameter_open_m / 2.0)
 
 
+def stowed_envelope_circle(state: PropellerVisualState) -> Tuple[float, float, float] | None:
+    """Proposal stowed storage envelope circle (documentation reference only)."""
+    if state.stowed_envelope_diameter_m is None:
+        return None
+    return (0.0, 0.0, state.stowed_envelope_diameter_m / 2.0)
+
+
 def hub_radius_m(state: PropellerVisualState) -> float:
     return state.diameter_open_m * HUB_RADIUS_FRACTION
 
 
 def plot_limits(state: PropellerVisualState) -> Tuple[float, float, float, float]:
     """Symmetric axis limits (xmin, xmax, ymin, ymax) for schematic panels."""
+    stowed_radius = (
+        state.stowed_envelope_diameter_m / 2.0
+        if state.stowed_envelope_diameter_m is not None
+        else 0.0
+    )
     span = max(
         state.diameter_open_m / 2.0,
         state.effective_diameter_m / 2.0,
+        stowed_radius,
         abs(state.tip_segment_length_m),
     )
     margin = span * 0.12

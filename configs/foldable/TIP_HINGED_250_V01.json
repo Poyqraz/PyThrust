@@ -8,7 +8,8 @@
     "hinge_position_m": 0.10,
     "tip_segment_mass_kg": 0.002,
     "tip_segment_cg_from_hinge_m": 0.0125,
-    "blade_count": 2
+    "blade_count": 2,
+    "stowed_envelope_diameter_m": 0.14
   },
   "hinge": {
     "theta_min_deg": -45.0,

@@ -75,6 +75,7 @@ def _build_state(
     moment_row: Mapping[str, Any] | None,
     params: Mapping[str, Any],
     diameter_open_m: float = DEFAULT_OPEN_DIAMETER_M,
+    stowed_envelope_diameter_m: float | None = None,
     theta_min_deg: float = DEFAULT_THETA_MIN_DEG,
     blade_count: int = DEFAULT_BLADE_COUNT,
 ) -> PropellerVisualState:
@@ -128,6 +129,7 @@ def _build_state(
         hinge_position_m=hinge_position_m,
         tip_segment_length_m=tip_segment_length_m,
         diameter_open_m=diameter_open_m,
+        stowed_envelope_diameter_m=stowed_envelope_diameter_m,
         blade_count=blade_count,
         theta_min_deg=theta_min_deg,
     )
@@ -169,6 +171,7 @@ def join_visual_states(
     *,
     throttle_values: Sequence[float] | None = None,
     diameter_open_m: float = DEFAULT_OPEN_DIAMETER_M,
+    stowed_envelope_diameter_m: float | None = None,
     theta_min_deg: float = DEFAULT_THETA_MIN_DEG,
     blade_count: int = DEFAULT_BLADE_COUNT,
 ) -> List[PropellerVisualState]:
@@ -217,6 +220,7 @@ def join_visual_states(
                     moment_row=moment_row,
                     params=params,
                     diameter_open_m=diameter_open_m,
+                    stowed_envelope_diameter_m=stowed_envelope_diameter_m,
                     theta_min_deg=theta_min_deg,
                     blade_count=blade_count,
                 )

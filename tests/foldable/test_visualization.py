@@ -13,13 +13,14 @@ from pythrust.foldable.visualization.geometry_2d import (
     annotation_lines,
     blade_polylines,
     effective_radius_circle,
+    stowed_envelope_circle,
 )
 from pythrust.foldable.visualization.io import join_visual_states
 from pythrust.foldable.visualization.panels import (
     draw_throttle_sweep_panel,
     draw_variant_compare_panel,
 )
-from pythrust.foldable.visualization.schematic import draw_single_state
+from pythrust.foldable.visualization.schematic import MODEL_NOTE_LINES, draw_single_state
 from pythrust.foldable.visualization.state import PropellerVisualState
 
 
@@ -72,6 +73,34 @@ def test_effective_radius_circle() -> None:
     cx, cy, radius = effective_radius_circle(state)
     assert (cx, cy) == (0.0, 0.0)
     assert radius == pytest.approx(0.12)
+
+
+def test_stowed_envelope_circle_optional() -> None:
+    state = PropellerVisualState(
+        variant_id="TIP_HINGED_250_RT75_25",
+        root_ratio=75,
+        tip_ratio=25,
+        throttle=0.0,
+        rpm=0.0,
+        theta_deg=-45.0,
+        effective_diameter_m=0.235,
+        opening_moment_nm=0.0,
+        resisting_moment_nm=0.0,
+        moment_margin_nm=0.0,
+        hinge_state="folded",
+        foldable_thrust_n=0.0,
+        hinge_position_m=0.09375,
+        tip_segment_length_m=0.03125,
+        stowed_envelope_diameter_m=0.14,
+    )
+    circle = stowed_envelope_circle(state)
+    assert circle is not None
+    assert circle[2] == pytest.approx(0.07)
+
+
+def test_model_note_lines_use_radial_schematic_caption() -> None:
+    assert any("radial schematic" in line for line in MODEL_NOTE_LINES)
+    assert not any("side elevation" in line for line in MODEL_NOTE_LINES)
 
 
 def test_annotation_lines_include_key_fields() -> None:

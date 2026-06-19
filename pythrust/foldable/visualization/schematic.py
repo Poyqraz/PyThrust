@@ -23,11 +23,12 @@ from .geometry_2d import (
     open_radius_circle,
     open_reference_polylines,
     plot_limits,
+    stowed_envelope_circle,
 )
 from .state import PropellerVisualState
 
 MODEL_NOTE_LINES: tuple[str, ...] = (
-    "2D side elevation schematic (V1)",
+    "2D radial schematic / effective-diameter visualization",
     OPENING_MOMENT_V1_MODEL_NOTE,
     ACTIVE_WINDOW_DIAMETER_GROWTH_SCORE_NOTE,
 )
@@ -80,6 +81,39 @@ def _draw_state_on_axis(
             zorder=1,
         )
     )
+    axis.text(
+        open_r * 0.72,
+        open_r * 0.72,
+        f"open target = {state.diameter_open_m:.2f} m",
+        fontsize=6.5,
+        color="0.45",
+        ha="left",
+        va="bottom",
+    )
+
+    stowed_circle = stowed_envelope_circle(state)
+    if stowed_circle is not None:
+        _, _, stowed_r = stowed_circle
+        axis.add_patch(
+            Circle(
+                (0.0, 0.0),
+                stowed_r,
+                fill=False,
+                linestyle=(0, (2, 2)),
+                linewidth=1.0,
+                edgecolor="tab:purple",
+                zorder=1,
+            )
+        )
+        axis.text(
+            -stowed_r * 0.05,
+            -stowed_r * 0.92,
+            f"stowed envelope target = {state.stowed_envelope_diameter_m:.2f} m",
+            fontsize=6.5,
+            color="tab:purple",
+            ha="center",
+            va="top",
+        )
 
     cx, cy, eff_r = effective_radius_circle(state)
     axis.add_patch(
@@ -92,6 +126,15 @@ def _draw_state_on_axis(
             edgecolor="tab:orange",
             zorder=1,
         )
+    )
+    axis.text(
+        eff_r * 0.55,
+        -eff_r * 0.85,
+        f"D_eff = {state.effective_diameter_m:.3f} m",
+        fontsize=6.5,
+        color="tab:orange",
+        ha="left",
+        va="top",
     )
 
     if show_open_reference and abs(state.theta_deg) > 1e-6:

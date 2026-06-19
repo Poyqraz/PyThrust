@@ -127,6 +127,21 @@ def draw_variant_compare_panel(
         )
         axis.set_xlim(xmin, xmax)
         axis.set_ylim(ymin, ymax)
+        axis.text(
+            0.02,
+            0.98,
+            (
+                f"θ={state.theta_deg:.1f}°\n"
+                f"D_eff={state.effective_diameter_m:.3f} m\n"
+                f"{state.hinge_state}"
+            ),
+            transform=axis.transAxes,
+            fontsize=7,
+            va="top",
+            ha="left",
+            family="monospace",
+            bbox={"boxstyle": "round,pad=0.25", "facecolor": "white", "alpha": 0.85, "edgecolor": "0.8"},
+        )
 
     fig.suptitle(f"Variant comparison @ throttle={throttle:.1f}", fontsize=11)
     fig.text(

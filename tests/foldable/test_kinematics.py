@@ -104,6 +104,7 @@ def test_load_config_from_json() -> None:
     config = load_config("configs/foldable/TIP_HINGED_250_V01.json")
     assert config.id == "TIP_HINGED_250_V01"
     assert config.geometry.diameter_open_m == 0.25
+    assert config.geometry.stowed_envelope_diameter_m == pytest.approx(0.14)
     assert config.geometry.tip_segment_cg_from_hinge_m == pytest.approx(0.0125)
     assert config.kinematics.kinematics_mode == "moment_based"
     assert config.hinge.hinge_stiffness_nm_per_rad == pytest.approx(0.55)

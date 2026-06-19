@@ -19,6 +19,7 @@ class FoldableGeometry:
     tip_segment_mass_kg: float
     blade_count: int = 2
     tip_segment_cg_from_hinge_m: float = 0.0
+    stowed_envelope_diameter_m: float | None = None
 
 
 @dataclass(frozen=True)
@@ -157,6 +158,11 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
             tip_segment_mass_kg=float(geometry_raw["tip_segment_mass_kg"]),
             blade_count=int(geometry_raw.get("blade_count", 2)),
             tip_segment_cg_from_hinge_m=tip_segment_cg_from_hinge_m,
+            stowed_envelope_diameter_m=(
+                float(geometry_raw["stowed_envelope_diameter_m"])
+                if geometry_raw.get("stowed_envelope_diameter_m") is not None
+                else None
+            ),
         ),
         hinge=HingeConfig(
             theta_min_deg=float(hinge_raw["theta_min_deg"]),

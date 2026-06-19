@@ -60,6 +60,25 @@ effective_diameter_m = diameter_open_m
 
 Örnek: `diameter_open_m = 0.25 m` için tam açıkta efektif çap 0.25 m olmalıdır.
 
+`effective_diameter_m`, uçuş başlangıcında pervane açısına bağlı **aerodinamik/radyal
+efektif çap**tır. İtki hesaplamasında kullanılır; katlanmış depolama zarfı ile
+aynı büyüklük değildir.
+
+## Katlanmış Depolama Zarfı (TÜBİTAK 2209-B)
+
+`stowed_envelope_diameter_m`, tekerlek/şasi üzerinde katlanmış pervanenin
+hedeflenen **depolama zarf çapı**dır (metre). TÜBİTAK 2209-B önerisinde tam açık
+hedef 0.25 m, katlanmış zarf hedefi 0.14 m olarak tanımlanmıştır.
+
+| Alan | Anlam | İtki modelinde kullanım |
+|---|---|---|
+| `diameter_open_m` | Tam açık geometrik çap hedefi | Evet (referans geometri) |
+| `effective_diameter_m` | Anlık aerodinamik/radyal efektif çap | Evet |
+| `stowed_envelope_diameter_m` | Katlanmış depolama zarf hedefi | Hayır (yalnızca dokümantasyon ve görselleştirme) |
+
+Ground mode thrust analiz edilmez; `stowed_envelope_diameter_m` yalnızca tasarım
+ve depolama kısıtı olarak raporlanır.
+
 ## Mafsal Kinematiği
 
 `kinematics.kinematics_mode` ile seçilir:
@@ -117,8 +136,15 @@ Ham değer: örneklenen throttle penceresinde ``(D_max - D_min) / D_max``.
 
 ## 2D Engineering Visualization (V1)
 
-Side-elevation schematic (hub → root → hinge → tip) driven by existing CSV
-outputs. No physics recomputation.
+2D radial schematic / effective-diameter visualization (hub → root → hinge → tip)
+driven by existing CSV outputs. No physics recomputation.
+
+**Diameter overlays:**
+
+- `diameter_open_m` — dotted open-target circle
+- `effective_diameter_m` — dashed D_eff circle (from sweep/moment CSV)
+- `stowed_envelope_diameter_m` — optional dotted reference circle from config
+  (proposal storage envelope; not used in thrust calculation)
 
 **Coordinate convention:** hub at `(0, 0)`; hinge at `(hinge_position_m, 0)`;
 tip at `(hinge_position_m + L·cosθ, L·sinθ)` with `L = tip_segment_length_m`.
