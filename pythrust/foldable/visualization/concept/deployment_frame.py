@@ -14,6 +14,7 @@ class ConceptDeploymentFrame:
     source_state: PropellerVisualState
     deployment_progress_01: float
     display_hinge_angle_deg: float
+    time_s: float | None = None
 
     @property
     def variant_id(self) -> str:

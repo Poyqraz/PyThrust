@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from ..state import PropellerVisualState
 from .deployment_frame import ConceptDeploymentFrame
-from .style import CONCEPT_FOLDED_DISPLAY_ANGLE_DEG, CONCEPT_OPEN_DISPLAY_ANGLE_DEG
+from .style import (
+    CONCEPT_FOLDED_DISPLAY_ANGLE_DEG,
+    CONCEPT_OPEN_DISPLAY_ANGLE_DEG,
+    DEPLOYMENT_SEQUENCE_DURATION_S,
+)
 
 
 def _clamp01(value: float) -> float:
@@ -33,6 +37,30 @@ def display_hinge_angle_from_progress(deployment_progress_01: float) -> float:
     )
 
 
+def pseudo_time_from_progress(deployment_progress_01: float) -> float:
+    """Map normalized deployment progress to pseudo-time for sequence visuals."""
+    return _clamp01(deployment_progress_01) * DEPLOYMENT_SEQUENCE_DURATION_S
+
+
+def frame_at_progress(
+    state: PropellerVisualState,
+    deployment_progress_01: float,
+    *,
+    time_s: float | None = None,
+) -> ConceptDeploymentFrame:
+    """Build a concept frame at an explicit deployment progress."""
+    progress = _clamp01(deployment_progress_01)
+    resolved_time = (
+        time_s if time_s is not None else pseudo_time_from_progress(progress)
+    )
+    return ConceptDeploymentFrame(
+        source_state=state,
+        deployment_progress_01=progress,
+        display_hinge_angle_deg=display_hinge_angle_from_progress(progress),
+        time_s=resolved_time,
+    )
+
+
 def frame_from_state(state: PropellerVisualState) -> ConceptDeploymentFrame:
     """Build a concept deployment frame from a model visual state."""
     progress = deployment_progress_from_theta(
@@ -40,11 +68,7 @@ def frame_from_state(state: PropellerVisualState) -> ConceptDeploymentFrame:
         theta_min_deg=state.theta_min_deg,
         theta_max_deg=0.0,
     )
-    return ConceptDeploymentFrame(
-        source_state=state,
-        deployment_progress_01=progress,
-        display_hinge_angle_deg=display_hinge_angle_from_progress(progress),
-    )
+    return frame_at_progress(state, progress)
 
 
 def frame_folded_reference() -> ConceptDeploymentFrame:
@@ -71,4 +95,5 @@ def frame_folded_reference() -> ConceptDeploymentFrame:
         source_state=reference_state,
         deployment_progress_01=0.0,
         display_hinge_angle_deg=CONCEPT_FOLDED_DISPLAY_ANGLE_DEG,
+        time_s=0.0,
     )

@@ -188,6 +188,11 @@ Concept secondary blade is drawn from `display_hinge_angle_deg`, **not** raw `th
 - `concept_state_*.png` — single-state schematic with compact info box
 - `concept_throttle_sweep_*.png` — throttle panel (deployment progression)
 - `concept_variant_compare_thr_*.png` — RT65_35 … RT85_15 comparison
+- `concept_deployment_sequence_*.png` — pseudo-time deployment sequence (folded → open)
+- `concept/frames/<variant_id>/deployment/` — per-frame PNGs + `manifest.json` for animation
+
+**Frame manifest fields:** `frame_index`, `time_s`, `deployment_progress_01`,
+`display_hinge_angle_deg`, `theta_deg_model`, `throttle`, `rpm`, `hinge_state`
 
 **Radial vs concept:**
 

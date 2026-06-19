@@ -44,13 +44,14 @@ def _shared_limits(states: Sequence[PropellerVisualState]) -> tuple[float, float
 
 
 def _compact_subplot_label(axis, state: PropellerVisualState) -> None:
+    frame = frame_from_state(state)
     axis.text(
         0.03,
         0.97,
         (
-            f"θ={state.theta_deg:.1f}°\n"
-            f"D_eff={state.effective_diameter_m:.3f} m\n"
-            f"{state.hinge_state}"
+            f"prog={frame.deployment_progress_01:.2f}\n"
+            f"φ={frame.display_hinge_angle_deg:.0f}°\n"
+            f"{frame.hinge_state}"
         ),
         transform=axis.transAxes,
         fontsize=SUBPLOT_LABEL_FONTSIZE,

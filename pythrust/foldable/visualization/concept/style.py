@@ -32,6 +32,10 @@ ARROW_LINEWIDTH = 0.9
 # Open: secondary blade extends radially outward (+x).
 CONCEPT_FOLDED_DISPLAY_ANGLE_DEG = 180.0
 CONCEPT_OPEN_DISPLAY_ANGLE_DEG = 0.0
+DEPLOYMENT_SEQUENCE_DURATION_S = 2.0
+DEFAULT_DEPLOYMENT_PROGRESS_STEPS: tuple[float, ...] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
+
+SEQUENCE_FIGSIZE = (12.0, 4.5)
 
 CONCEPT_MODEL_NOTE = (
     "Concept deployment schematic (folded-start interpretation); "

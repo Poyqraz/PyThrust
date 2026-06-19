@@ -11,6 +11,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from pythrust.foldable.models import load_config  # noqa: E402
 from pythrust.foldable.visualization.io import join_visual_states, state_for  # noqa: E402
+from pythrust.foldable.visualization.concept.frames import export_deployment_frames  # noqa: E402
 from pythrust.foldable.visualization.concept.panels import (  # noqa: E402
     draw_throttle_sweep_concept,
     draw_variant_compare_concept,
@@ -19,6 +20,7 @@ from pythrust.foldable.visualization.concept.schematic import (  # noqa: E402
     draw_single_state_concept,
     draw_static_overview,
 )
+from pythrust.foldable.visualization.concept.sequence import draw_deployment_sequence  # noqa: E402
 from pythrust.foldable.visualization.panels import (  # noqa: E402
     DEFAULT_THROTTLE_SWEEP_VALUES,
     draw_throttle_sweep_panel,
@@ -108,6 +110,9 @@ def _write_report(
         "concept_variant_compare_thr_0.6.png": (
             f"concept variant comparison at throttle={compare_throttle}"
         ),
+        "concept_deployment_sequence_TIP_HINGED_250_RT75_25.png": (
+            f"deployment sequence (folded → open) for `{variant_id}`"
+        ),
     }
     for path in concept_files:
         caption = concept_captions.get(path.name, "concept schematic")
@@ -135,6 +140,7 @@ def _write_report(
             "- V1 schematic only; blade width and motor connection are illustrative.",
             "- Concept deployment schematic uses folded-start interpretation; radial visuals "
             "remain the primary tool for effective-diameter analysis.",
+            "- Frame export under `concept/frames/<variant_id>/deployment/` for future animation.",
             "",
             "## Defaults used",
             "",
@@ -219,6 +225,16 @@ def main() -> None:
             states,
             output_path=OUTPUT_DIR / f"concept_variant_compare_thr_{DEFAULT_COMPARE_THROTTLE:.1f}.png",
         )
+    )
+    concept_written.append(
+        draw_deployment_sequence(
+            single,
+            output_path=OUTPUT_DIR / f"concept_deployment_sequence_{DEFAULT_VARIANT_ID}.png",
+        )
+    )
+    export_deployment_frames(
+        single,
+        OUTPUT_DIR / "concept" / "frames",
     )
 
     report_path = _write_report(
