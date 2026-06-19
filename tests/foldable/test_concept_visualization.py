@@ -160,6 +160,38 @@ def test_concept_panels_write_pngs(tmp_path: Path) -> None:
     assert compare_png.stat().st_size > 0
 
 
+def test_variant_compare_concept_includes_all_default_ratios(tmp_path: Path) -> None:
+    sweep = Path("outputs/foldable/design_variant_sweep.csv")
+    moment = Path("outputs/foldable/moment_kinematics_validation.csv")
+    params = Path("outputs/foldable/variant_physical_parameters.csv")
+    if not (sweep.is_file() and moment.is_file() and params.is_file()):
+        pytest.skip("foldable CSV outputs not generated")
+
+    states = join_visual_states(
+        sweep,
+        moment,
+        params,
+        throttle_values=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+    )
+    compare_png = draw_variant_compare_concept(
+        0.6,
+        states,
+        output_path=tmp_path / "concept_variant_compare_thr_0.6.png",
+    )
+    assert compare_png.is_file()
+    selected = [
+        s
+        for s in states
+        if abs(s.throttle - 0.6) < 1e-6
+        and s.variant_id.startswith("TIP_HINGED_250_RT")
+    ]
+    assert len(selected) == 5
+    frames = [frame_from_state(s) for s in selected]
+    for frame in frames:
+        assert frame.hinge_state
+        assert frame.effective_diameter_m > 0.0
+
+
 def test_throttle_sweep_first_panel_is_folded_at_t0(tmp_path: Path) -> None:
     sweep = Path("outputs/foldable/design_variant_sweep.csv")
     moment = Path("outputs/foldable/moment_kinematics_validation.csv")

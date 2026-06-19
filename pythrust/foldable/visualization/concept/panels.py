@@ -17,7 +17,7 @@ from ..state import PropellerVisualState
 from .deployment_mapping import frame_at_progress, frame_from_state
 from .style import DEPLOYMENT_SEQUENCE_DURATION_S
 from .geometry import plot_limits
-from .schematic import draw_state_on_axis, draw_state_on_axis_from_model
+from .schematic import draw_state_on_axis
 from .style import (
     BG_WHITE,
     CONCEPT_MODEL_NOTE,
@@ -51,6 +51,27 @@ def _compact_subplot_label(axis, frame) -> None:
         (
             f"prog={frame.deployment_progress_01:.2f}\n"
             f"φ={frame.display_hinge_angle_deg:.0f}°"
+        ),
+        transform=axis.transAxes,
+        fontsize=SUBPLOT_LABEL_FONTSIZE,
+        va="top",
+        ha="left",
+        family="monospace",
+        bbox={"boxstyle": "round,pad=0.2", "facecolor": "white", "alpha": 0.9, "edgecolor": "0.8"},
+        zorder=8,
+    )
+
+
+def _variant_compare_subplot_label(axis, state: PropellerVisualState) -> None:
+    variant_label = f"RT{state.root_ratio}_{state.tip_ratio}"
+    axis.text(
+        0.03,
+        0.97,
+        (
+            f"{variant_label}\n"
+            f"θ={state.theta_deg:.1f}°\n"
+            f"{state.hinge_state}\n"
+            f"D_eff={state.effective_diameter_m:.3f} m"
         ),
         transform=axis.transAxes,
         fontsize=SUBPLOT_LABEL_FONTSIZE,
@@ -132,7 +153,7 @@ def draw_variant_compare_concept(
     ratios: Sequence[tuple[int, int]] = DEFAULT_ROOT_TIP_RATIOS,
     output_path: str | Path,
 ) -> Path:
-    """Concept variant comparison at fixed throttle (1x5 grid)."""
+    """Concept deployment-style variant comparison at fixed throttle (1x5 grid)."""
     selected: List[PropellerVisualState] = []
     for root_ratio, tip_ratio in ratios:
         variant_id = variant_id_from_ratios(root_ratio, tip_ratio)
@@ -154,15 +175,25 @@ def draw_variant_compare_concept(
     if len(selected) == 1:
         axes = [axes]
 
-    xmin, xmax, ymin, ymax = _shared_limits(selected)
-    for axis, state in zip(axes, selected):
-        label = f"RT{state.root_ratio}_{state.tip_ratio}"
-        draw_state_on_axis_from_model(axis, state, title=label)
+    frames = [frame_from_state(state) for state in selected]
+    limits = [plot_limits(frame) for frame in frames]
+    xmin = min(item[0] for item in limits)
+    xmax = max(item[1] for item in limits)
+    ymin = min(item[2] for item in limits)
+    ymax = max(item[3] for item in limits)
+
+    for axis, state, frame in zip(axes, selected, frames, strict=True):
+        variant_label = f"RT{state.root_ratio}_{state.tip_ratio}"
+        draw_state_on_axis(axis, frame, title=variant_label)
         axis.set_xlim(xmin, xmax)
         axis.set_ylim(ymin, ymax)
-        _compact_subplot_label(axis, frame_from_state(state))
+        _variant_compare_subplot_label(axis, state)
 
-    fig.suptitle(f"Concept variant comparison @ throttle={throttle:.1f}", fontsize=11)
+    ratio_labels = ", ".join(f"RT{r}_{t}" for r, t in ratios)
+    fig.suptitle(
+        f"Concept variant comparison @ throttle={throttle:.1f} ({ratio_labels})",
+        fontsize=11,
+    )
     fig.text(
         0.01,
         0.01,

@@ -115,6 +115,15 @@ def _write_report(
             "- Frame PNGs: `frames/concept_<variant_id>/frame_000.png` plus optional "
             "`frames_metadata.csv` for animation pipelines.",
             "",
+            "### Concept variant comparison",
+            "",
+            f"`concept_variant_compare_thr_{compare_throttle:.1f}.png` compares root/tip "
+            "ratio variants (RT65_35 … RT85_15) at fixed throttle using the concept "
+            "mechanical style (filled main + secondary blades). Each subplot shows the "
+            "model deployment state at that throttle with `display_hinge_angle_deg` derived "
+            "from `theta_deg` via folded-start mapping. Compact labels: variant, θ, "
+            "hinge_state, D_eff.",
+            "",
         ]
     )
     concept_captions = {
@@ -126,7 +135,9 @@ def _write_report(
             f"pseudo-time deployment sweep for `{variant_id}` (t=0 folded → t=2.0 s open)"
         ),
         "concept_variant_compare_thr_0.6.png": (
-            f"concept variant comparison at throttle={compare_throttle}"
+            f"concept deployment-style variant comparison (RT65_35 … RT85_15) "
+            f"@ throttle={compare_throttle}; each panel shows model deployment with "
+            "folded-start display angle mapping and compact variant / θ / hinge / D_eff labels"
         ),
         "concept_deployment_sequence_TIP_HINGED_250_RT75_25.png": (
             f"deployment sequence (folded → open) for `{variant_id}`"
