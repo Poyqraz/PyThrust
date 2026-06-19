@@ -35,6 +35,20 @@ def prop_entry():
     return entry
 
 
+def test_hinge_radius_does_not_affect_opening_moment(project_config) -> None:
+    from dataclasses import replace
+
+    from pythrust.foldable.kinematics import opening_moment_nm
+
+    rpm = 5000.0
+    geometry = project_config.geometry
+    hinge_a = project_config.hinge
+    hinge_b = replace(hinge_a, hinge_radius_m=hinge_a.hinge_radius_m + 0.05)
+    m_a = opening_moment_nm(rpm, geometry, hinge_a)
+    m_b = opening_moment_nm(rpm, geometry, hinge_b)
+    assert m_a == pytest.approx(m_b)
+
+
 def test_resisting_moment_uses_radians_not_degrees() -> None:
     hinge = HingeConfig(
         theta_min_deg=-45.0,

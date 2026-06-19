@@ -13,6 +13,9 @@ Moment V1 modeli::
 
 ``r_cg`` = ``tip_segment_cg_from_hinge_m`` (yoksa ``tip_segment_length_m / 2``).
 ``lever_arm`` = ``tip_segment_length_m`` (V1 varsayımı).
+
+``hinge_radius_m`` V1 açılma momentinde **kullanılmaz**; yalnızca config/metadata
+olarak saklanır (varyant mafsal konumu ile hizalanır).
 """
 
 from __future__ import annotations
@@ -21,6 +24,17 @@ import math
 from typing import Protocol
 
 from .models import FoldableGeometry, FoldablePropellerConfig, HingeConfig, KinematicsConfig
+
+OPENING_MOMENT_V1_MODEL_NOTE = (
+    "hinge_radius_m is stored but not used in V1 opening moment"
+)
+
+MOMENT_MARGIN_NOTES: dict[str, str] = {
+    "folded": "M_open <= M_resist at theta_min; margin ~ 0",
+    "opening": "Equilibrium: M_open ~= M_resist; margin ~ 0",
+    "fully_open": "Balanced at theta_max without mechanical stop",
+    "saturated_open": "Positive margin: surplus M_open reacted by mechanical stop at theta_max",
+}
 
 
 class HingeKinematicsModel(Protocol):
@@ -51,16 +65,20 @@ def effective_hinge_radius_m(hinge: HingeConfig, geometry: FoldableGeometry) -> 
 def opening_moment_nm(
     rpm: float,
     geometry: FoldableGeometry,
-    hinge: HingeConfig,
+    _hinge: HingeConfig,
 ) -> float:
-    """Merkezkaç kaynaklı açılma momenti (N·m)."""
+    """Merkezkaç kaynaklı açılma momenti (N·m).
+
+    V1 formül: ``M_open = m_tip * omega² * r_cg * lever_arm``.
+
+    ``hinge_radius_m`` bu hesapta kullanılmaz; bkz. ``OPENING_MOMENT_V1_MODEL_NOTE``.
+    """
     if rpm <= 0.0:
         return 0.0
 
     omega = rpm * 2.0 * math.pi / 60.0
     r_cg = effective_tip_cg_from_hinge_m(geometry)
     lever_arm = geometry.tip_segment_length_m
-    _ = effective_hinge_radius_m(hinge, geometry)  # metadata for future radial refinement
     return geometry.tip_segment_mass_kg * omega**2 * r_cg * lever_arm
 
 

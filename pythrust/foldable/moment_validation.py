@@ -1,4 +1,14 @@
-"""Moment tabanlı mafsal kinematiği doğrulama tabloları ve CSV çıktıları."""
+"""Moment tabanlı mafsal kinematiği doğrulama tabloları ve CSV çıktıları.
+
+``moment_margin_nm = M_open - M_resist``:
+
+- ``opening``: denge, margin yaklaşık 0
+- ``saturated_open``: pozitif margin, fazla açılma momenti mekanik durakta
+- ``folded``: ``M_open <= M_resist``, margin yaklaşık 0
+
+V1 açılma momenti: ``M_open = m_tip * omega² * r_cg * lever_arm``;
+``hinge_radius_m`` kullanılmaz (bkz. ``OPENING_MOMENT_V1_MODEL_NOTE``).
+"""
 
 from __future__ import annotations
 
@@ -13,6 +23,8 @@ from .design_sweep import DEFAULT_ROOT_TIP_RATIOS
 from .effective_diameter import effective_diameter_m
 from .integration import solve_pythrust_operating_point
 from .kinematics import (
+    MOMENT_MARGIN_NOTES,
+    OPENING_MOMENT_V1_MODEL_NOTE,
     classify_hinge_state,
     opening_moment_nm,
     resisting_moment_nm,
@@ -216,4 +228,8 @@ def format_validation_table(
             f"{row.opening_moment_nm:8.5f} {row.resisting_moment_nm:8.5f} "
             f"{row.moment_margin_nm:8.5f} {row.hinge_state:>15}"
         )
+    lines.append("")
+    lines.append(f"Model note: {OPENING_MOMENT_V1_MODEL_NOTE}")
+    for state, note in MOMENT_MARGIN_NOTES.items():
+        lines.append(f"  {state}: {note}")
     return "\n".join(lines)

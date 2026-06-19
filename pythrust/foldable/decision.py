@@ -18,6 +18,7 @@ DESIGN_VARIANT_DECISION_COLUMNS: tuple[str, ...] = (
     "startup_thrust_score",
     "flight_performance_score",
     "deployment_score",
+    "active_window_diameter_growth_score",
     "takeoff_transition_score",
     "recommendation_note",
 )
@@ -70,7 +71,9 @@ class DesignVariantDecisionRow:
     recommendation_note: str
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["active_window_diameter_growth_score"] = self.deployment_score
+        return data
 
 
 def min_max_normalize(values: Sequence[float]) -> List[float]:
@@ -118,7 +121,12 @@ def deployment_raw(
     min_effective_diameter_m: float,
     max_effective_diameter_m: float,
 ) -> float:
-    """Erken çap açılımı: throttle rampası boyunca efektif çap büyümesi."""
+    """Örneklenen throttle penceresinde gözlenen efektif çap büyümesi.
+
+    ``active_window_diameter_growth_raw = (D_max - D_min) / D_max`` where
+    ``D_min``/``D_max`` are min/max ``effective_diameter_m`` over the sampled
+    throttle points. This is **not** total stowed-to-open geometric deployment.
+    """
     if max_effective_diameter_m <= 0.0:
         return 0.0
     growth_m = max_effective_diameter_m - min_effective_diameter_m

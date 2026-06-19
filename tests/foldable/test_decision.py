@@ -126,6 +126,8 @@ def test_decision_csv_columns(summary_csv, tmp_path) -> None:
     content = output.read_text(encoding="utf-8")
     for col in DESIGN_VARIANT_DECISION_COLUMNS:
         assert col in content
+    for row in rows:
+        assert row.deployment_score == row.to_dict()["active_window_diameter_growth_score"]
     assert "stowed_priority_score" not in content
     assert "ground_priority_score" not in content
     assert "compactness_score" not in content

@@ -86,7 +86,20 @@ M_resist(theta) = k_hinge * (theta_rad - theta_min_rad) + M_friction
 | `lever_arm` | `tip_segment_length_m` (V1 varsayımı) |
 | `k_hinge` | `hinge.hinge_stiffness_nm_per_rad` |
 | `M_friction` | `hinge.hinge_friction_nm` |
-| `hinge_radius_m` | `hinge.hinge_radius_m` (varsayılan: `hinge_position_m`; ileride radyal terim) |
+| `hinge_radius_m` | `hinge.hinge_radius_m` — **V1 açılma momentinde kullanılmaz**; metadata |
+
+``moment_margin_nm = M_open - M_resist`` yorumu:
+
+| `hinge_state` | `moment_margin_nm` |
+|---|---|
+| `opening` | Denge: yaklaşık 0 |
+| `folded` | `M_open <= M_resist`; yaklaşık 0 |
+| `saturated_open` | Pozitif: fazla `M_open` mekanik durakta karşılanır |
+| `fully_open` | Denge `theta_max`'ta, durak yok |
+
+Karar skoru ``active_window_diameter_growth_score`` (CSV'de ``deployment_score`` ile
+aynı değer): örneklenen throttle penceresinde ``(D_max - D_min) / D_max``. Bu,
+katlanmış depolama geometrisinden tam açığa toplam deployment değildir.
 
 Çözüm: `M_open ≤ M_friction` veya `rpm ≤ 0` → `theta_min_deg`; aksi halde
 `theta_rad = theta_min_rad + (M_open - M_friction) / k_hinge`, sonra

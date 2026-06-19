@@ -100,6 +100,7 @@ def test_generate_foldable_report_figures_creates_expected_files(
     content = report_path.read_text(encoding="utf-8")
     assert "reference_scaled" in content
     assert "moment-based" in content
+    assert "active_window_diameter_growth_score" in content
     assert "fig_thrust_difference_normalized_250mm.png" in content
 
 

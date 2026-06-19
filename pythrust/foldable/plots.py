@@ -63,10 +63,18 @@ SWEEP_THROTTLE_PLOTS: tuple[tuple[str, str, str, str], ...] = (
 
 DECISION_SCORE_COLUMNS: tuple[tuple[str, str], ...] = (
     ("startup_thrust_score", "Startup thrust"),
-    ("deployment_score", "Diameter growth"),
+    ("active_window_diameter_growth_score", "Active window diameter growth"),
     ("flight_performance_score", "Flight performance"),
     ("takeoff_transition_score", "Takeoff transition"),
 )
+
+
+def _decision_row_score(row: Mapping[str, Any], column: str) -> float:
+    if column == "active_window_diameter_growth_score":
+        if column in row and row[column] not in ("", None):
+            return float(row[column])
+        return float(row["deployment_score"])
+    return float(row[column])
 
 
 def read_sweep_csv_for_plots(path: str | Path) -> List[Dict[str, Any]]:
@@ -331,7 +339,7 @@ def plot_decision_scores_by_variant(
     fig, axis = plt.subplots(figsize=(10, 5))
     for index, (column, legend_label) in enumerate(DECISION_SCORE_COLUMNS):
         offsets = [x + (index - (score_count - 1) / 2) * bar_width for x in x_positions]
-        values = [float(row[column]) for row in decision_rows]
+        values = [_decision_row_score(row, column) for row in decision_rows]
         axis.bar(offsets, values, width=bar_width, label=legend_label)
 
     axis.set_xticks(x_positions)
@@ -344,7 +352,10 @@ def plot_decision_scores_by_variant(
     axis.legend()
     _add_model_note_to_figure(
         fig,
-        subtitle="deployment_score shown as diameter_growth_score (not dynamic opening speed)",
+        subtitle=(
+            "active_window_diameter_growth_score: observed D_eff growth over sampled "
+            "throttle window (deployment_score alias kept in CSV)"
+        ),
     )
     fig.tight_layout()
     fig.subplots_adjust(bottom=0.16)
@@ -455,7 +466,8 @@ def _figure_captions() -> List[tuple[str, str]]:
     captions.append(
         (
             "flight_startup_scores_by_variant.png",
-            "Decision support scores; deployment_score labeled as diameter_growth_score.",
+            "Decision support scores; active_window_diameter_growth_score "
+            "(alias of deployment_score; sampled throttle window only).",
         )
     )
     return captions

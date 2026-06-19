@@ -28,7 +28,7 @@
     "k_thrust": 1.0,
     "k_torque": 1.0,
     "ct_ref": 0.10,
-    "model_note": "V2 moment-based hinge kinematics, reference_scaled thrust, geometric D_eff",
+    "model_note": "V2 moment-based hinge kinematics, reference_scaled thrust, geometric D_eff; hinge_radius_m not used in V1 M_open",
     "thrust_model_mode": "reference_scaled",
     "eta_hinge": 1.0,
     "eta_profile": 1.0,
