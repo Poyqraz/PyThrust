@@ -11,6 +11,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from pythrust.foldable.models import load_config  # noqa: E402
 from pythrust.foldable.visualization.io import join_visual_states, state_for  # noqa: E402
+from pythrust.foldable.visualization.concept.panels import (  # noqa: E402
+    draw_throttle_sweep_concept,
+    draw_variant_compare_concept,
+)
+from pythrust.foldable.visualization.concept.schematic import (  # noqa: E402
+    draw_single_state_concept,
+    draw_static_overview,
+)
 from pythrust.foldable.visualization.panels import (  # noqa: E402
     DEFAULT_THROTTLE_SWEEP_VALUES,
     draw_throttle_sweep_panel,
@@ -27,7 +35,7 @@ DEFAULT_VARIANT_ID = "TIP_HINGED_250_RT75_25"
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "foldable" / "TIP_HINGED_250_V01.json"
 DEFAULT_SINGLE_THROTTLE = 0.6
 DEFAULT_COMPARE_THROTTLE = 0.6
-REPORT_NAME = "foldable_visuals_report.md"
+REPORT_NAME = "foldable_2d_visuals_report.md"
 
 
 def _require_csv(path: Path, script_hint: str) -> None:
@@ -41,7 +49,8 @@ def _require_csv(path: Path, script_hint: str) -> None:
 def _write_report(
     output_dir: Path,
     *,
-    written_files: list[Path],
+    radial_files: list[Path],
+    concept_files: list[Path],
     variant_id: str,
     single_throttle: float,
     compare_throttle: float,
@@ -61,20 +70,66 @@ def _write_report(
         "",
         "## Model notes",
         "",
-        "- 2D radial schematic / effective-diameter visualization; physics model unchanged",
-        "- D_eff is aerodynamic effective diameter during flight startup; "
-        "stowed_envelope_diameter_m is proposal storage envelope (visualization only).",
+        "- Physics model unchanged.",
+        "- D_eff is aerodynamic effective diameter during flight startup.",
+        "- `stowed_envelope_diameter_m` is only the proposal storage envelope visualization target.",
+        "- Ground mode thrust is not analyzed.",
         "- V1 moment model: hinge_radius_m is stored but not used in opening moment calculation.",
         "- active_window_diameter_growth_score measures observed diameter growth over sampled "
         "throttle values, not total stowed-to-open geometric deployment.",
         "",
-        "## Figures",
+        "## 1. Existing radial/effective-diameter visualizations",
+        "",
+        "Line-based engineering schematics for effective-diameter analysis and validation.",
         "",
     ]
-    for path in written_files:
-        lines.append(f"- `{path.name}`")
+    for path in radial_files:
+        lines.append(f"- `{path.name}` — radial schematic with D_eff / open / stowed reference circles")
     lines.extend(
         [
+            "",
+            "## 2. New concept/report schematic visualizations",
+            "",
+            "Presentation-friendly black-filled blade schematics inspired by the TÜBİTAK proposal figure.",
+            "",
+        ]
+    )
+    concept_captions = {
+        "concept_static_overview.png": "static component overview with bilingual labels",
+        "concept_state_TIP_HINGED_250_RT75_25_thr_0.6.png": (
+            f"single-state concept schematic for `{variant_id}` @ throttle={single_throttle}"
+        ),
+        "concept_throttle_sweep_TIP_HINGED_250_RT75_25.png": (
+            f"concept throttle sweep for `{variant_id}`"
+        ),
+        "concept_variant_compare_thr_0.6.png": (
+            f"concept variant comparison at throttle={compare_throttle}"
+        ),
+    }
+    for path in concept_files:
+        caption = concept_captions.get(path.name, "concept schematic")
+        lines.append(f"- `{path.name}` — {caption}")
+    lines.extend(
+        [
+            "",
+            "## 3. Radial vs concept visualization",
+            "",
+            "| Aspect | Radial / effective-diameter | Concept / report schematic |",
+            "|---|---|---|",
+            "| Purpose | Analysis and validation | Explanation and presentation |",
+            "| Style | Line-based with measurement circles | Black filled blade shapes |",
+            "| D_eff overlay | Yes | No (values in info box only) |",
+            "| Stowed envelope circle | Yes (when configured) | No |",
+            "| Component labels | Engineering annotations | Bilingual arrows (static overview) |",
+            "",
+            "## 4. Limitations",
+            "",
+            "- Not CAD.",
+            "- Not CFD.",
+            "- Not true airfoil geometry.",
+            "- V1 schematic only; blade width and motor connection are illustrative.",
+            "- Concept schematic is for explanation/presentation; radial visuals remain the "
+            "primary tool for effective-diameter analysis.",
             "",
             "## Defaults used",
             "",
@@ -113,31 +168,58 @@ def main() -> None:
     )
 
     single = state_for(states, DEFAULT_VARIANT_ID, DEFAULT_SINGLE_THROTTLE)
-    written: list[Path] = []
+    radial_written: list[Path] = []
+    concept_written: list[Path] = []
 
     single_path = draw_single_state(
         single,
         output_path=OUTPUT_DIR / f"single_state_{DEFAULT_VARIANT_ID}_thr_{DEFAULT_SINGLE_THROTTLE:.1f}.png",
     )
-    written.append(single_path)
+    radial_written.append(single_path)
 
     sweep_panel_path = draw_throttle_sweep_panel(
         DEFAULT_VARIANT_ID,
         states,
         output_path=OUTPUT_DIR / f"throttle_sweep_{DEFAULT_VARIANT_ID}.png",
     )
-    written.append(sweep_panel_path)
+    radial_written.append(sweep_panel_path)
 
     compare_panel_path = draw_variant_compare_panel(
         DEFAULT_COMPARE_THROTTLE,
         states,
         output_path=OUTPUT_DIR / f"variant_compare_thr_{DEFAULT_COMPARE_THROTTLE:.1f}.png",
     )
-    written.append(compare_panel_path)
+    radial_written.append(compare_panel_path)
+
+    concept_written.append(
+        draw_static_overview(output_path=OUTPUT_DIR / "concept_static_overview.png")
+    )
+    concept_written.append(
+        draw_single_state_concept(
+            single,
+            output_path=OUTPUT_DIR
+            / f"concept_state_{DEFAULT_VARIANT_ID}_thr_{DEFAULT_SINGLE_THROTTLE:.1f}.png",
+        )
+    )
+    concept_written.append(
+        draw_throttle_sweep_concept(
+            DEFAULT_VARIANT_ID,
+            states,
+            output_path=OUTPUT_DIR / f"concept_throttle_sweep_{DEFAULT_VARIANT_ID}.png",
+        )
+    )
+    concept_written.append(
+        draw_variant_compare_concept(
+            DEFAULT_COMPARE_THROTTLE,
+            states,
+            output_path=OUTPUT_DIR / f"concept_variant_compare_thr_{DEFAULT_COMPARE_THROTTLE:.1f}.png",
+        )
+    )
 
     report_path = _write_report(
         OUTPUT_DIR,
-        written_files=written,
+        radial_files=radial_written,
+        concept_files=concept_written,
         variant_id=DEFAULT_VARIANT_ID,
         single_throttle=DEFAULT_SINGLE_THROTTLE,
         compare_throttle=DEFAULT_COMPARE_THROTTLE,
@@ -147,8 +229,11 @@ def main() -> None:
     print(f"Moment CSV  : {MOMENT_CSV}")
     print(f"Params CSV  : {PARAMS_CSV}")
     print(f"Output dir  : {OUTPUT_DIR}")
-    print(f"Figures     : {len(written)}")
-    for path in written:
+    print(f"Radial      : {len(radial_written)}")
+    for path in radial_written:
+        print(f"  - {path.name}")
+    print(f"Concept     : {len(concept_written)}")
+    for path in concept_written:
         print(f"  - {path.name}")
     print(f"Report      : {report_path.name}")
 
