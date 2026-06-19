@@ -115,6 +115,26 @@ Ham değer: örneklenen throttle penceresinde ``(D_max - D_min) / D_max``.
 `rpm_only` modu geriye dönük uyumluluk için korunur; `rpm_threshold` ve
 `rpm_full_open` yalnızca bu modda kullanılır.
 
+## 2D Engineering Visualization (V1)
+
+Side-elevation schematic (hub → root → hinge → tip) driven by existing CSV
+outputs. No physics recomputation.
+
+**Coordinate convention:** hub at `(0, 0)`; hinge at `(hinge_position_m, 0)`;
+tip at `(hinge_position_m + L·cosθ, L·sinθ)` with `L = tip_segment_length_m`.
+
+**Inputs:**
+
+- `outputs/foldable/design_variant_sweep.csv` — thrust, compactness
+- `outputs/foldable/moment_kinematics_validation.csv` — moments, hinge_state
+- `outputs/foldable/variant_physical_parameters.csv` — segment lengths
+
+**Outputs:** `outputs/foldable/visuals/` (single state, throttle sweep panel,
+variant comparison panel, `foldable_visuals_report.md`).
+
+Generate via `examples/run_foldable_visuals.py` after sweep and moment validation
+CSVs exist.
+
 ## Çıktı Dosyaları
 
 Sweep ve karşılaştırma tabloları `outputs/foldable/` altında CSV olarak
