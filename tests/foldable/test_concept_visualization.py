@@ -9,8 +9,14 @@ import pytest
 from pythrust.foldable.visualization.concept.deployment_mapping import (
     deployment_progress_from_theta,
     display_hinge_angle_from_progress,
-    frame_from_state,
+    frame_at_progress,
     frame_folded_reference,
+    frame_from_state,
+)
+from pythrust.foldable.visualization.concept.frames import (
+    concept_frames_dir,
+    export_concept_frames_from_states,
+    export_deployment_frames,
 )
 from pythrust.foldable.visualization.concept.geometry import (
     display_tip_point,
@@ -29,6 +35,7 @@ from pythrust.foldable.visualization.concept.schematic import (
 from pythrust.foldable.visualization.concept.style import (
     CONCEPT_FOLDED_DISPLAY_ANGLE_DEG,
     CONCEPT_OPEN_DISPLAY_ANGLE_DEG,
+    DEPLOYMENT_SEQUENCE_DURATION_S,
 )
 from pythrust.foldable.visualization.io import join_visual_states
 from pythrust.foldable.visualization.state import PropellerVisualState
@@ -151,3 +158,62 @@ def test_concept_panels_write_pngs(tmp_path: Path) -> None:
     )
     assert sweep_png.stat().st_size > 0
     assert compare_png.stat().st_size > 0
+
+
+def test_throttle_sweep_first_panel_is_folded_at_t0(tmp_path: Path) -> None:
+    sweep = Path("outputs/foldable/design_variant_sweep.csv")
+    moment = Path("outputs/foldable/moment_kinematics_validation.csv")
+    params = Path("outputs/foldable/variant_physical_parameters.csv")
+    if not (sweep.is_file() and moment.is_file() and params.is_file()):
+        pytest.skip("foldable CSV outputs not generated")
+
+    states = join_visual_states(
+        sweep,
+        moment,
+        params,
+        throttle_values=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+    )
+    variant_states = sorted(
+        [s for s in states if s.variant_id == "TIP_HINGED_250_RT75_25"],
+        key=lambda s: s.throttle,
+    )
+    first = variant_states[0]
+    frame_t0 = frame_at_progress(first, 0.0, time_s=0.0)
+    assert frame_t0.display_hinge_angle_deg == pytest.approx(CONCEPT_FOLDED_DISPLAY_ANGLE_DEG)
+    assert frame_t0.time_s == pytest.approx(0.0)
+
+    last = variant_states[-1]
+    frame_t_end = frame_at_progress(last, 1.0, time_s=DEPLOYMENT_SEQUENCE_DURATION_S)
+    assert frame_t_end.display_hinge_angle_deg == pytest.approx(CONCEPT_OPEN_DISPLAY_ANGLE_DEG)
+
+
+def test_export_concept_frames_from_states(tmp_path: Path) -> None:
+    sweep = Path("outputs/foldable/design_variant_sweep.csv")
+    moment = Path("outputs/foldable/moment_kinematics_validation.csv")
+    params = Path("outputs/foldable/variant_physical_parameters.csv")
+    if not (sweep.is_file() and moment.is_file() and params.is_file()):
+        pytest.skip("foldable CSV outputs not generated")
+
+    states = join_visual_states(
+        sweep,
+        moment,
+        params,
+        throttle_values=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+    )
+    variant_states = sorted(
+        [s for s in states if s.variant_id == "TIP_HINGED_250_RT75_25"],
+        key=lambda s: s.throttle,
+    )
+    variant_id = "TIP_HINGED_250_RT75_25"
+    written = export_concept_frames_from_states(
+        variant_states,
+        tmp_path,
+        variant_id=variant_id,
+    )
+    frames_dir = concept_frames_dir(tmp_path, variant_id)
+    assert frames_dir.is_dir()
+    assert len(written) == 6
+    assert (frames_dir / "frame_000.png").is_file()
+    assert (frames_dir / "frame_005.png").is_file()
+    assert (frames_dir / "manifest.json").is_file()
+    assert (frames_dir / "frames_metadata.csv").is_file()

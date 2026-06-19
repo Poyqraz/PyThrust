@@ -14,9 +14,10 @@ import matplotlib.pyplot as plt
 from ...variants import DEFAULT_ROOT_TIP_RATIOS, variant_id_from_ratios
 from ..panels import DEFAULT_THROTTLE_SWEEP_VALUES
 from ..state import PropellerVisualState
-from .deployment_mapping import frame_from_state
+from .deployment_mapping import frame_at_progress, frame_from_state
+from .style import DEPLOYMENT_SEQUENCE_DURATION_S
 from .geometry import plot_limits
-from .schematic import draw_state_on_axis_from_model
+from .schematic import draw_state_on_axis, draw_state_on_axis_from_model
 from .style import (
     BG_WHITE,
     CONCEPT_MODEL_NOTE,
@@ -43,15 +44,13 @@ def _shared_limits(states: Sequence[PropellerVisualState]) -> tuple[float, float
     return (xmin, xmax, ymin, ymax)
 
 
-def _compact_subplot_label(axis, state: PropellerVisualState) -> None:
-    frame = frame_from_state(state)
+def _compact_subplot_label(axis, frame) -> None:
     axis.text(
         0.03,
         0.97,
         (
             f"prog={frame.deployment_progress_01:.2f}\n"
-            f"φ={frame.display_hinge_angle_deg:.0f}°\n"
-            f"{frame.hinge_state}"
+            f"φ={frame.display_hinge_angle_deg:.0f}°"
         ),
         transform=axis.transAxes,
         fontsize=SUBPLOT_LABEL_FONTSIZE,
@@ -70,7 +69,7 @@ def draw_throttle_sweep_concept(
     throttles: Sequence[float] = DEFAULT_THROTTLE_SWEEP_VALUES,
     output_path: str | Path,
 ) -> Path:
-    """Concept throttle sweep panel for one variant (2x3 grid)."""
+    """Concept pseudo-time deployment sweep for one variant (2x3 grid)."""
     variant_states = _states_for_variant(states, variant_id)
     by_throttle: Dict[float, PropellerVisualState] = {
         round(state.throttle, 4): state for state in variant_states
@@ -82,19 +81,34 @@ def draw_throttle_sweep_concept(
     figure_path = Path(output_path)
     figure_path.parent.mkdir(parents=True, exist_ok=True)
 
-    fig, axes = plt.subplots(2, 3, figsize=PANEL_SWEEP_FIGSIZE)
-    xmin, xmax, ymin, ymax = _shared_limits(selected)
+    n = len(selected)
+    frames = []
+    for index, state in enumerate(selected):
+        progress = index / (n - 1) if n > 1 else 0.0
+        time_s = progress * DEPLOYMENT_SEQUENCE_DURATION_S
+        frames.append(frame_at_progress(state, progress, time_s=time_s))
 
-    for axis, state in zip(axes.flatten(), selected):
-        draw_state_on_axis_from_model(axis, state, title=f"thr={state.throttle:.1f}")
+    fig, axes = plt.subplots(2, 3, figsize=PANEL_SWEEP_FIGSIZE)
+    limits = [plot_limits(frame) for frame in frames]
+    xmin = min(item[0] for item in limits)
+    xmax = max(item[1] for item in limits)
+    ymin = min(item[2] for item in limits)
+    ymax = max(item[3] for item in limits)
+
+    for axis, frame in zip(axes.flatten(), frames):
+        time_s = frame.time_s if frame.time_s is not None else 0.0
+        draw_state_on_axis(axis, frame, title=f"t={time_s:.1f} s")
         axis.set_xlim(xmin, xmax)
         axis.set_ylim(ymin, ymax)
-        _compact_subplot_label(axis, state)
+        _compact_subplot_label(axis, frame)
 
-    for axis in axes.flatten()[len(selected) :]:
+    for axis in axes.flatten()[len(frames) :]:
         axis.axis("off")
 
-    fig.suptitle(f"Concept throttle sweep — {variant_id}", fontsize=11)
+    fig.suptitle(
+        f"Concept pseudo-time deployment sweep — {variant_id}",
+        fontsize=11,
+    )
     fig.text(
         0.01,
         0.01,
@@ -146,7 +160,7 @@ def draw_variant_compare_concept(
         draw_state_on_axis_from_model(axis, state, title=label)
         axis.set_xlim(xmin, xmax)
         axis.set_ylim(ymin, ymax)
-        _compact_subplot_label(axis, state)
+        _compact_subplot_label(axis, frame_from_state(state))
 
     fig.suptitle(f"Concept variant comparison @ throttle={throttle:.1f}", fontsize=11)
     fig.text(

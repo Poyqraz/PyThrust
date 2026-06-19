@@ -11,7 +11,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from pythrust.foldable.models import load_config  # noqa: E402
 from pythrust.foldable.visualization.io import join_visual_states, state_for  # noqa: E402
-from pythrust.foldable.visualization.concept.frames import export_deployment_frames  # noqa: E402
+from pythrust.foldable.visualization.concept.frames import (  # noqa: E402
+    export_concept_frames_from_states,
+    export_deployment_frames,
+)
 from pythrust.foldable.visualization.concept.panels import (  # noqa: E402
     draw_throttle_sweep_concept,
     draw_variant_compare_concept,
@@ -97,6 +100,21 @@ def _write_report(
             "open=0°), mapped from model `theta_deg` via `deployment_progress_01`.",
             "Static overview shows the near-folded initial configuration.",
             "",
+            "### Pseudo-time deployment sequence (first-step concept)",
+            "",
+            "Throttle sweep panels and frame exports use **pseudo-time**, not a dynamic "
+            "rigid-body simulation:",
+            "",
+            "- Panel index maps to `t = index / (N-1) × 2.0 s` with labels `t=0.0 s`, "
+            "`t=0.4 s`, … `t=2.0 s`.",
+            "- At `t=0`, the secondary blade is drawn at the folded display angle (180°).",
+            "- Later frames interpolate display hinge angle toward open (0°) by panel progress.",
+            "- Sweep CSV rows supply per-throttle model context (D_eff, moments); opening "
+            "geometry in concept panels follows the pseudo-time index, not instantaneous "
+            "rigid-body integration.",
+            "- Frame PNGs: `frames/concept_<variant_id>/frame_000.png` plus optional "
+            "`frames_metadata.csv` for animation pipelines.",
+            "",
         ]
     )
     concept_captions = {
@@ -105,7 +123,7 @@ def _write_report(
             f"single-state concept schematic for `{variant_id}` @ throttle={single_throttle}"
         ),
         "concept_throttle_sweep_TIP_HINGED_250_RT75_25.png": (
-            f"concept throttle sweep for `{variant_id}`"
+            f"pseudo-time deployment sweep for `{variant_id}` (t=0 folded → t=2.0 s open)"
         ),
         "concept_variant_compare_thr_0.6.png": (
             f"concept variant comparison at throttle={compare_throttle}"
@@ -140,7 +158,10 @@ def _write_report(
             "- V1 schematic only; blade width and motor connection are illustrative.",
             "- Concept deployment schematic uses folded-start interpretation; radial visuals "
             "remain the primary tool for effective-diameter analysis.",
-            "- Frame export under `concept/frames/<variant_id>/deployment/` for future animation.",
+            "- Pseudo-time panels are concept deployment visualization only — not yet a "
+            "dynamic rigid-body simulation.",
+            "- Frame export: `frames/concept_<variant_id>/` (PNG sequence + `manifest.json` "
+            "+ `frames_metadata.csv`).",
             "",
             "## Defaults used",
             "",
@@ -231,6 +252,15 @@ def main() -> None:
             single,
             output_path=OUTPUT_DIR / f"concept_deployment_sequence_{DEFAULT_VARIANT_ID}.png",
         )
+    )
+    variant_states = [
+        s for s in states if s.variant_id == DEFAULT_VARIANT_ID
+    ]
+    variant_states.sort(key=lambda s: s.throttle)
+    export_concept_frames_from_states(
+        variant_states,
+        OUTPUT_DIR,
+        variant_id=DEFAULT_VARIANT_ID,
     )
     export_deployment_frames(
         single,

@@ -10,7 +10,7 @@ from .deployment_mapping import (
     pseudo_time_from_progress,
 )
 from .deployment_geometry import display_tip_point
-from .frames import export_deployment_frames
+from .frames import export_concept_frames_from_states, export_deployment_frames
 from .geometry import frame_for_state, static_folded_frame
 from .panels import draw_throttle_sweep_concept, draw_variant_compare_concept
 from .schematic import draw_single_state_concept, draw_static_overview, draw_state_on_axis
@@ -27,6 +27,7 @@ __all__ = [
     "draw_state_on_axis",
     "draw_throttle_sweep_concept",
     "draw_variant_compare_concept",
+    "export_concept_frames_from_states",
     "export_deployment_frames",
     "frame_at_progress",
     "frame_folded_reference",

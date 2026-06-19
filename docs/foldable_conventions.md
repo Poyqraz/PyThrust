@@ -186,13 +186,21 @@ Concept secondary blade is drawn from `display_hinge_angle_deg`, **not** raw `th
 
 - `concept_static_overview.png` — folded-start bilingual labeled overview
 - `concept_state_*.png` — single-state schematic with compact info box
-- `concept_throttle_sweep_*.png` — throttle panel (deployment progression)
+- `concept_throttle_sweep_*.png` — pseudo-time deployment sweep panel (t=0 folded → open)
 - `concept_variant_compare_thr_*.png` — RT65_35 … RT85_15 comparison
 - `concept_deployment_sequence_*.png` — pseudo-time deployment sequence (folded → open)
-- `concept/frames/<variant_id>/deployment/` — per-frame PNGs + `manifest.json` for animation
+- `frames/concept_<variant_id>/` — per-frame PNGs (`frame_000.png`, …), `manifest.json`,
+  and optional `frames_metadata.csv` for animation
+- `concept/frames/<variant_id>/deployment/` — legacy uniform-progress frame export
 
-**Frame manifest fields:** `frame_index`, `time_s`, `deployment_progress_01`,
-`display_hinge_angle_deg`, `theta_deg_model`, `throttle`, `rpm`, `hinge_state`
+**Pseudo-time (first-step concept deployment):** panel index maps to
+`t = index / (N-1) × DEPLOYMENT_SEQUENCE_DURATION_S` (default 2.0 s). At t=0 the secondary
+blade uses folded display angle (180°); later frames interpolate toward open (0°). This is
+visualization-only — not a dynamic rigid-body simulation. Sweep CSV rows provide model
+context per throttle; concept opening geometry follows panel progress index.
+
+**Frame manifest / CSV fields:** `frame_index`, `time_s`, `deployment_progress_01`,
+`display_hinge_angle_deg`, `source_throttle`, `source_theta_deg`, `source_state_id`
 
 **Radial vs concept:**
 
