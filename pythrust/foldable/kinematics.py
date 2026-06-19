@@ -64,6 +64,41 @@ def opening_moment_nm(
     return geometry.tip_segment_mass_kg * omega**2 * r_cg * lever_arm
 
 
+def resisting_moment_nm(theta_deg: float, hinge: HingeConfig) -> float:
+    """Mafsal yay ve sürtünmeye karşı direnç momenti (N·m).
+
+    ``hinge_stiffness_nm_per_rad`` ile açı farkı **radyan** cinsinden çarpılır.
+    """
+    theta_rad = math.radians(theta_deg)
+    theta_min_rad = math.radians(hinge.theta_min_deg)
+    return (
+        hinge.hinge_stiffness_nm_per_rad * (theta_rad - theta_min_rad)
+        + hinge.hinge_friction_nm
+    )
+
+
+def classify_hinge_state(
+    rpm: float,
+    theta_deg: float,
+    opening_moment: float,
+    resisting_moment: float,
+    hinge: HingeConfig,
+    *,
+    angle_tol_deg: float = 1e-6,
+) -> str:
+    """Moment dengesi durum etiketi."""
+    if rpm <= 0.0:
+        return "folded"
+    if abs(theta_deg - hinge.theta_min_deg) <= angle_tol_deg:
+        if opening_moment <= resisting_moment + 1e-12:
+            return "folded"
+    if abs(theta_deg - hinge.theta_max_deg) <= angle_tol_deg:
+        if opening_moment > resisting_moment + 1e-9:
+            return "saturated_open"
+        return "fully_open"
+    return "opening"
+
+
 def theta_deg_from_hinge(
     rpm: float,
     hinge: HingeConfig,
