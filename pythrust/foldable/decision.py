@@ -9,6 +9,11 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from .summary import THROTTLE_TOLERANCE, read_design_variant_sweep_csv
 
+ACTIVE_WINDOW_DIAMETER_GROWTH_SCORE_NOTE = (
+    "active_window_diameter_growth_score measures observed diameter growth "
+    "over sampled throttle values, not total stowed-to-open geometric deployment."
+)
+
 DESIGN_VARIANT_DECISION_COLUMNS: tuple[str, ...] = (
     "variant_id",
     "root_ratio",

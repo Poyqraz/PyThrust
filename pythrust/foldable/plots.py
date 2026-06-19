@@ -12,7 +12,11 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 
-from .decision import read_design_variant_summary_csv
+from .decision import (
+    ACTIVE_WINDOW_DIAMETER_GROWTH_SCORE_NOTE,
+    read_design_variant_summary_csv,
+)
+from .kinematics import OPENING_MOMENT_V1_MODEL_NOTE
 
 PROJECT_OPEN_DIAMETER_M = 0.25
 DEFAULT_THETA_MIN_DEG = -45.0
@@ -21,6 +25,8 @@ MODEL_NOTE_LINES: tuple[str, ...] = (
     "Model: reference_scaled thrust",
     "No CFD/BEMT/experiment yet",
     "Theta: moment-based hinge balance (V1)",
+    OPENING_MOMENT_V1_MODEL_NOTE,
+    ACTIVE_WINDOW_DIAMETER_GROWTH_SCORE_NOTE,
 )
 
 FOLDABLE_REPORT_FIGURE_NAMES: tuple[str, ...] = (
@@ -352,10 +358,7 @@ def plot_decision_scores_by_variant(
     axis.legend()
     _add_model_note_to_figure(
         fig,
-        subtitle=(
-            "active_window_diameter_growth_score: observed D_eff growth over sampled "
-            "throttle window (deployment_score alias kept in CSV)"
-        ),
+        subtitle=ACTIVE_WINDOW_DIAMETER_GROWTH_SCORE_NOTE,
     )
     fig.tight_layout()
     fig.subplots_adjust(bottom=0.16)
@@ -466,8 +469,8 @@ def _figure_captions() -> List[tuple[str, str]]:
     captions.append(
         (
             "flight_startup_scores_by_variant.png",
-            "Decision support scores; active_window_diameter_growth_score "
-            "(alias of deployment_score; sampled throttle window only).",
+            f"Preferred label: active_window_diameter_growth_score "
+            f"(deployment_score kept in CSV). {ACTIVE_WINDOW_DIAMETER_GROWTH_SCORE_NOTE}",
         )
     )
     return captions

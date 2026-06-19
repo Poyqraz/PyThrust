@@ -28,7 +28,11 @@ DESIGN_VARIANT_SUMMARY_MODEL_NOTE = (
     "Summary from design_variant_sweep.csv; folded_diameter_ratio = "
     "folded_effective_diameter / open_diameter (lower is more compact); "
     "compactness_gain_percent = (1 - folded_diameter_ratio) * 100; "
-    "score_simple = compactness_gain_percent + mean_thrust_difference_percent"
+    "score_simple = compactness_gain_percent + mean_thrust_difference_percent; "
+    "min/max effective_diameter_m feed active_window_diameter_growth_score in "
+    "decision matrix (deployment_score kept for backward compatibility); "
+    "active_window_diameter_growth_score measures observed diameter growth over "
+    "sampled throttle values, not total stowed-to-open geometric deployment"
 )
 
 THROTTLE_TOLERANCE = 1e-6

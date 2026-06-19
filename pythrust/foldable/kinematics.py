@@ -26,7 +26,7 @@ from typing import Protocol
 from .models import FoldableGeometry, FoldablePropellerConfig, HingeConfig, KinematicsConfig
 
 OPENING_MOMENT_V1_MODEL_NOTE = (
-    "hinge_radius_m is stored but not used in V1 opening moment"
+    "V1 moment model: hinge_radius_m is stored but not used in opening moment calculation."
 )
 
 MOMENT_MARGIN_NOTES: dict[str, str] = {

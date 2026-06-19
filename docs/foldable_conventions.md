@@ -86,7 +86,10 @@ M_resist(theta) = k_hinge * (theta_rad - theta_min_rad) + M_friction
 | `lever_arm` | `tip_segment_length_m` (V1 varsayımı) |
 | `k_hinge` | `hinge.hinge_stiffness_nm_per_rad` |
 | `M_friction` | `hinge.hinge_friction_nm` |
-| `hinge_radius_m` | `hinge.hinge_radius_m` — **V1 açılma momentinde kullanılmaz**; metadata |
+| `hinge_radius_m` | `hinge.hinge_radius_m` — metadata only in V1 |
+
+**Model note:** V1 moment model: hinge_radius_m is stored but not used in opening
+moment calculation.
 
 ``moment_margin_nm = M_open - M_resist`` yorumu:
 
@@ -97,9 +100,13 @@ M_resist(theta) = k_hinge * (theta_rad - theta_min_rad) + M_friction
 | `saturated_open` | Pozitif: fazla `M_open` mekanik durakta karşılanır |
 | `fully_open` | Denge `theta_max`'ta, durak yok |
 
-Karar skoru ``active_window_diameter_growth_score`` (CSV'de ``deployment_score`` ile
-aynı değer): örneklenen throttle penceresinde ``(D_max - D_min) / D_max``. Bu,
-katlanmış depolama geometrisinden tam açığa toplam deployment değildir.
+Karar skoru ``active_window_diameter_growth_score`` (tercih edilen etiket; CSV'de
+``deployment_score`` geriye dönük uyumluluk için korunur):
+
+**Model note:** active_window_diameter_growth_score measures observed diameter
+growth over sampled throttle values, not total stowed-to-open geometric deployment.
+
+Ham değer: örneklenen throttle penceresinde ``(D_max - D_min) / D_max``.
 
 Çözüm: `M_open ≤ M_friction` veya `rpm ≤ 0` → `theta_min_deg`; aksi halde
 `theta_rad = theta_min_rad + (M_open - M_friction) / k_hinge`, sonra
