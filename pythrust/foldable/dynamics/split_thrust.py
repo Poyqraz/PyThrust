@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Literal
 
 from pythrust.propellers.database import PropellerEntry
 
@@ -16,6 +17,24 @@ from ..geometry_helpers import (
 from ..models import FoldablePropellerConfig
 from .aero import _coefficients_at_hover
 
+ThrustSplitMode = Literal[
+    "independent_tip_disk",
+    "effective_diameter_delta",
+    "annular_extension_proxy",
+]
+
+THRUST_SPLIT_MODES: tuple[ThrustSplitMode, ...] = (
+    "independent_tip_disk",
+    "effective_diameter_delta",
+    "annular_extension_proxy",
+)
+
+MODE_NOTES: dict[ThrustSplitMode, str] = {
+    "independent_tip_disk": "Legacy: tip as standalone disk d_tip=2*extension, T_tip~d_tip^4",
+    "effective_diameter_delta": "BEM-lite: T_tip=max(T(D_aero)-T(D_root),0)",
+    "annular_extension_proxy": "BEM-lite: annulus area fraction of full-open increment",
+}
+
 
 @dataclass(frozen=True)
 class SplitThrustResult:
@@ -25,6 +44,20 @@ class SplitThrustResult:
     geometric_effective_diameter_m: float
     aerodynamic_effective_diameter_m: float
     tip_radial_extension_m: float
+
+
+def _thrust_scale(config: FoldablePropellerConfig) -> float:
+    return max(config.calibration.k_thrust, 0.0)
+
+
+def _resolve_split_mode(
+    config: FoldablePropellerConfig,
+    split_mode: ThrustSplitMode | None,
+) -> ThrustSplitMode:
+    selected = split_mode or config.calibration.thrust_split_mode
+    if selected not in THRUST_SPLIT_MODES:
+        raise ValueError(f"Unknown thrust_split_mode: {selected!r}")
+    return selected
 
 
 def _thrust_from_diameter(
@@ -40,6 +73,88 @@ def _thrust_from_diameter(
     n = rpm / 60.0
     ct, _ = _coefficients_at_hover(rpm, prop_entry)
     return ct * rho * (n**2) * (diameter_m**4) * scale
+
+
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, value))
+
+
+def _split_independent_tip_disk(
+    *,
+    rpm: float,
+    d_root: float,
+    tip_ext: float,
+    tip_aero_effectiveness: float,
+    prop_entry: PropellerEntry,
+    rho: float,
+    thrust_scale: float,
+) -> tuple[float, float, float]:
+    thrust_root = _thrust_from_diameter(
+        rpm, d_root, prop_entry, rho=rho, scale=thrust_scale
+    )
+    d_tip_equiv = 2.0 * tip_ext if tip_ext > 0.0 else 0.0
+    thrust_tip = _thrust_from_diameter(
+        rpm,
+        d_tip_equiv,
+        prop_entry,
+        rho=rho,
+        scale=thrust_scale * _clamp01(tip_aero_effectiveness),
+    )
+    return thrust_root, thrust_tip, thrust_root + thrust_tip
+
+
+def _split_effective_diameter_delta(
+    *,
+    rpm: float,
+    d_root: float,
+    d_aero: float,
+    prop_entry: PropellerEntry,
+    rho: float,
+    thrust_scale: float,
+) -> tuple[float, float, float]:
+    """Effective diameter delta proxy (BEM-lite, not full BEM)."""
+    thrust_root = _thrust_from_diameter(
+        rpm, d_root, prop_entry, rho=rho, scale=thrust_scale
+    )
+    thrust_total_aero = _thrust_from_diameter(
+        rpm, d_aero, prop_entry, rho=rho, scale=thrust_scale
+    )
+    thrust_tip = max(thrust_total_aero - thrust_root, 0.0)
+    return thrust_root, thrust_tip, thrust_root + thrust_tip
+
+
+def _split_annular_extension_proxy(
+    *,
+    rpm: float,
+    d_root: float,
+    d_geo: float,
+    diameter_open_m: float,
+    tip_aero_effectiveness: float,
+    prop_entry: PropellerEntry,
+    rho: float,
+    thrust_scale: float,
+) -> tuple[float, float, float]:
+    """Annular blade-extension proxy (BEM-lite, not full BEM)."""
+    thrust_root = _thrust_from_diameter(
+        rpm, d_root, prop_entry, rho=rho, scale=thrust_scale
+    )
+    thrust_full_open = _thrust_from_diameter(
+        rpm, diameter_open_m, prop_entry, rho=rho, scale=thrust_scale
+    )
+    increment = max(thrust_full_open - thrust_root, 0.0)
+
+    r_inner = d_root / 2.0
+    r_outer = d_geo / 2.0
+    r_open = diameter_open_m / 2.0
+    denom = r_open**2 - r_inner**2
+    if denom <= 0.0 or r_outer <= r_inner:
+        annulus_fraction = 0.0
+    else:
+        annulus_fraction = _clamp01((r_outer**2 - r_inner**2) / denom)
+
+    eff = _clamp01(tip_aero_effectiveness)
+    thrust_tip = increment * annulus_fraction * eff
+    return thrust_root, thrust_tip, thrust_root + thrust_tip
 
 
 @dataclass(frozen=True)
@@ -66,23 +181,26 @@ def compute_tip_thrust_breakdown(
     prop_entry: PropellerEntry,
     rho: float = 1.225,
 ) -> TipThrustBreakdown:
-    """Expose tip thrust pipeline stages for diagnostic analysis."""
+    """Expose independent-tip-disk pipeline stages for diagnostic analysis."""
     geometry = config.geometry
     d_root = root_diameter_m(geometry)
     tip_ext = tip_radial_extension_from_config(theta_deg, config)
     d_geo = geometric_effective_diameter_from_config(theta_deg, config)
-    eff = max(0.0, min(1.0, tip_aero_effectiveness))
+    eff = _clamp01(tip_aero_effectiveness)
     d_aero = aerodynamic_effective_diameter_m(
         d_geo,
         root_diameter_m=d_root,
         tip_aero_effectiveness=eff,
     )
     length = geometry.tip_segment_length_m
-    exposed = max(0.0, min(1.0, tip_ext / length)) if length > 0.0 else 0.0
+    exposed = _clamp01(tip_ext / length) if length > 0.0 else 0.0
     d_tip_equiv = 2.0 * tip_ext if tip_ext > 0.0 else 0.0
-    thrust_raw = _thrust_from_diameter(rpm, d_tip_equiv, prop_entry, rho=rho, scale=1.0)
+    scale = _thrust_scale(config)
+    thrust_raw = _thrust_from_diameter(
+        rpm, d_tip_equiv, prop_entry, rho=rho, scale=scale
+    )
     thrust_after = _thrust_from_diameter(
-        rpm, d_tip_equiv, prop_entry, rho=rho, scale=eff
+        rpm, d_tip_equiv, prop_entry, rho=rho, scale=scale * eff
     )
     return TipThrustBreakdown(
         tip_radial_extension_m=tip_ext,
@@ -106,16 +224,18 @@ def compute_split_thrust(
     prop_entry: PropellerEntry,
     rho: float = 1.225,
     use_legacy_aggregate: bool = False,
+    split_mode: ThrustSplitMode | None = None,
 ) -> SplitThrustResult:
     """Compute root + tip thrust contributions."""
     geometry = config.geometry
     d_root = root_diameter_m(geometry)
     tip_ext = tip_radial_extension_from_config(theta_deg, config)
     d_geo = geometric_effective_diameter_from_config(theta_deg, config)
+    eff = _clamp01(tip_aero_effectiveness)
     d_aero = aerodynamic_effective_diameter_m(
         d_geo,
         root_diameter_m=d_root,
-        tip_aero_effectiveness=tip_aero_effectiveness,
+        tip_aero_effectiveness=eff,
     )
 
     if use_legacy_aggregate:
@@ -138,21 +258,47 @@ def compute_split_thrust(
             tip_radial_extension_m=tip_ext,
         )
 
-    thrust_root = _thrust_from_diameter(rpm, d_root, prop_entry, rho=rho, scale=1.0)
+    mode = _resolve_split_mode(config, split_mode)
+    scale = _thrust_scale(config)
 
-    d_tip_equiv = 2.0 * tip_ext if tip_ext > 0.0 else 0.0
-    thrust_tip = _thrust_from_diameter(
-        rpm,
-        d_tip_equiv,
-        prop_entry,
-        rho=rho,
-        scale=tip_aero_effectiveness,
-    )
+    if mode == "independent_tip_disk":
+        thrust_root, thrust_tip, thrust_total = _split_independent_tip_disk(
+            rpm=rpm,
+            d_root=d_root,
+            tip_ext=tip_ext,
+            tip_aero_effectiveness=eff,
+            prop_entry=prop_entry,
+            rho=rho,
+            thrust_scale=scale,
+        )
+    elif mode == "effective_diameter_delta":
+        thrust_root, thrust_tip, thrust_total = _split_effective_diameter_delta(
+            rpm=rpm,
+            d_root=d_root,
+            d_aero=d_aero,
+            prop_entry=prop_entry,
+            rho=rho,
+            thrust_scale=scale,
+        )
+    elif mode == "annular_extension_proxy":
+        thrust_root, thrust_tip, thrust_total = _split_annular_extension_proxy(
+            rpm=rpm,
+            d_root=d_root,
+            d_geo=d_geo,
+            diameter_open_m=geometry.diameter_open_m,
+            tip_aero_effectiveness=eff,
+            prop_entry=prop_entry,
+            rho=rho,
+            thrust_scale=scale,
+        )
+    else:
+        exhaustive: ThrustSplitMode = mode
+        raise ValueError(f"Unhandled thrust_split_mode: {exhaustive!r}")
 
     return SplitThrustResult(
         thrust_root_n=thrust_root,
         thrust_tip_n=thrust_tip,
-        thrust_total_n=thrust_root + thrust_tip,
+        thrust_total_n=thrust_total,
         geometric_effective_diameter_m=d_geo,
         aerodynamic_effective_diameter_m=d_aero,
         tip_radial_extension_m=tip_ext,

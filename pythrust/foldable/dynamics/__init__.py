@@ -44,6 +44,12 @@ from .hinge_moments import HingeMomentComponents, compute_hinge_moments
 from ..kinematics import classify_physics_hinge_state
 from .integrator import euler_step
 from .motor import algebraic_motor_current, applied_voltage_v, motor_torque_nm
+from .physics_thrust_split_diagnostic import (
+    THRUST_SPLIT_COMPARISON_COLUMNS,
+    ThrustSplitComparisonRow,
+    run_thrust_split_model_comparison,
+    write_thrust_split_model_comparison_csv,
+)
 from .physics_deployment_sweep import (
     DEPLOYMENT_BIAS_STIFFNESS_SWEEP_COLUMNS,
     DeploymentSweepRow,
@@ -80,7 +86,15 @@ from .physics_figures import plot_physics_debug_figures
 from .physics_simulation import run_prescribed_rpm_physics
 from .physics_state import PHYSICS_DEBUG_CSV_COLUMNS, PhysicsState, write_physics_csv
 from .prescribed_rpm import PrescribedRpmConfig
-from .split_thrust import SplitThrustResult, TipThrustBreakdown, compute_split_thrust, compute_tip_thrust_breakdown
+from .split_thrust import (
+    MODE_NOTES,
+    THRUST_SPLIT_MODES,
+    SplitThrustResult,
+    ThrustSplitMode,
+    TipThrustBreakdown,
+    compute_split_thrust,
+    compute_tip_thrust_breakdown,
+)
 from .rotor import default_rotor_inertia_kgm2, rotor_acceleration_rad_s2
 from .simulation import (
     MODEL_ASSUMPTIONS,
@@ -106,6 +120,11 @@ __all__ = [
     "HingeState",
     "CENT_MOMENT_MODELS",
     "CentMomentModel",
+    "MODE_NOTES",
+    "THRUST_SPLIT_MODES",
+    "THRUST_SPLIT_COMPARISON_COLUMNS",
+    "ThrustSplitComparisonRow",
+    "ThrustSplitMode",
     "MOMENT_GEOMETRY_DIAGNOSTIC_COLUMNS",
     "MomentGeometryDiagnosticRow",
     "IDEAL_GEOMETRY_RATIO_NOTE",
@@ -165,6 +184,7 @@ __all__ = [
     "run_hinge_parameter_diagnostic_sweep",
     "run_moment_geometry_diagnostic_cases",
     "run_tip_thrust_activation_diagnostic",
+    "run_thrust_split_model_comparison",
     "run_tip_thrust_latch_comparison",
     "run_prescribed_rpm_physics",
     "run_spinup_simulation",
@@ -177,6 +197,7 @@ __all__ = [
     "write_deployment_bias_stiffness_sweep_csv",
     "write_diagnostic_sweep_csv",
     "write_tip_thrust_activation_csv",
+    "write_thrust_split_model_comparison_csv",
     "write_moment_geometry_diagnostic_csv",
     "write_physics_csv",
     "write_spinup_csv",

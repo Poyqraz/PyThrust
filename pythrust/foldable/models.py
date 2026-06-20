@@ -72,6 +72,7 @@ class CalibrationConfig:
     eta_hinge: float = 1.0
     eta_profile: float = 1.0
     reference_diameter_m: float = 0.254
+    thrust_split_mode: str = "independent_tip_disk"
 
 
 @dataclass(frozen=True)
@@ -235,6 +236,9 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
             eta_hinge=float(calibration_raw.get("eta_hinge", 1.0)),
             eta_profile=float(calibration_raw.get("eta_profile", 1.0)),
             reference_diameter_m=float(calibration_raw.get("reference_diameter_m", 0.254)),
+            thrust_split_mode=str(
+                calibration_raw.get("thrust_split_mode", "independent_tip_disk")
+            ),
         ),
         reference_propeller_id=str(raw.get("reference_propeller_id", "")),
         motor=MotorConfig(
