@@ -37,11 +37,18 @@ MODEL_ASSUMPTIONS: tuple[str, ...] = (
     "(not a second-order hinge ODE).",
     "Quasi-steady aero at J=0; Ct/Cp from reference propeller database with D_eff.",
     "Dynamic V1 aero_effectiveness scales thrust/torque by deployment progress "
-    f"(folded floor={FOLDED_MIN_AERO_EFFECTIVENESS:.2f}); folded overlap not fully modeled.",
+    f"(folded floor={FOLDED_MIN_AERO_EFFECTIVENESS:.2f}); V1 approximation only, "
+    "not a full folded-blade aero model.",
     "D_eff is aerodynamic effective diameter during deployment, not the 0.14 m "
     "stowed_envelope_diameter_m storage target.",
     "Thrust and aero torque zero at omega=0.",
-    "Throttle profile configurable: step (default) or linear_ramp with ramp_time_s.",
+    "Throttle step profile is an ideal command (instant full throttle after t=0).",
+    "Throttle linear_ramp profile is more realistic for startup visualization "
+    "(default ramp_time_s=0.5 s).",
+    "ideal_geometry_ratio_at_7100_rpm is not experimental performance; it assumes "
+    "no profile/hinge/manufacturing loss once fully deployed.",
+    "TÜBİTAK 0.70 pretest and 0.85 project ratios are calibration/target references "
+    "against the same-diameter standard propeller; not automatically achieved by V1.",
     "Static foldable model unchanged; additive dynamics layer only.",
 )
 

@@ -221,7 +221,10 @@ static/quasi-static foldable model.
 
 **Outputs:**
 
-- `outputs/foldable/dynamics/dynamic_spinup_RT75_25.csv` — time history
+- `outputs/foldable/dynamics/dynamic_spinup_RT75_25_step.csv` — step throttle time history
+- `outputs/foldable/dynamics/dynamic_spinup_RT75_25_ramp.csv` — linear ramp startup
+  (`ramp_time_s=0.5`)
+- `outputs/foldable/dynamics/dynamic_spinup_RT75_25.csv` — legacy alias of step CSV
 - `outputs/foldable/dynamics/figures/spinup_RT75_25.png` — 4-panel summary
   (RPM, θ, thrust, D_eff vs time)
 - `outputs/foldable/dynamics/frames/RT75_25/` — rotating concept-style PNG frames
@@ -237,14 +240,23 @@ static/quasi-static foldable model.
 - `D_eff` = aerodynamic effective diameter during deployment; **not** the 0.14 m
   `stowed_envelope_diameter_m` storage target.
 - `aero_effectiveness` scales thrust/torque by deployment progress (folded overlap
-  approximation); not a full folded-blade aero model.
-- Throttle profiles: `step` (default) or `linear_ramp` with `ramp_time_s`.
-- Checkpoint summary: `dynamic_spinup_summary_RT75_25.csv` at 7100 rpm vs reference
-  open propeller thrust (pretest ratio target 0.70, project goal 0.85).
+  approximation); V1 approximation only, not a full folded-blade aero model.
+- Throttle `step` profile is an ideal command (instant full throttle after t=0).
+- Throttle `linear_ramp` profile is more realistic for startup visualization
+  (default `ramp_time_s=0.5` s).
+- Checkpoint summary: `dynamic_spinup_summary_RT75_25.csv` at 7100 rpm.
+- `ideal_geometry_ratio_at_7100_rpm` = simulated thrust / reference open propeller
+  thrust at 7100 rpm when the model is fully deployed; **not** experimental
+  performance (assumes no profile/hinge/manufacturing loss once open).
+- `current_pretest_ratio` (0.70) and `project_target_ratio` (0.85) are TÜBİTAK
+  calibration/target references vs the same-diameter standard propeller; the V1
+  model does not automatically achieve them.
+- `current_calibrated_thrust_at_7100_rpm` and `target_thrust_at_7100_rpm` scale
+  the reference thrust by those TÜBİTAK fractions for proposal alignment.
 
 **TÜBİTAK reference hooks** (`dynamics/calibration.py`): 25 cm open diameter,
-14 cm stowed envelope, 7100 rpm pretest, 70% / 85% lift calibration targets
-(future BEM/CFD/experiment).
+14 cm stowed envelope, 7100 rpm pretest, 70% pretest / 85% project lift targets
+(future BEM/CFD/experiment calibration).
 
 ## Çıktı Dosyaları
 

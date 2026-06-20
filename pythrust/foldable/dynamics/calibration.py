@@ -19,6 +19,11 @@ TUBITAK_PRETEST_RPM = 7100.0
 TUBITAK_LIFT_REFERENCE_FRACTION = 0.70
 TUBITAK_LIFT_TARGET_FRACTION = 0.85
 
+IDEAL_GEOMETRY_RATIO_NOTE = (
+    "ideal_geometry_ratio_at_7100_rpm is not experimental performance; it assumes "
+    "no profile/hinge/manufacturing loss once fully deployed."
+)
+
 SPINUP_SUMMARY_CSV_COLUMNS: tuple[str, ...] = (
     "variant_id",
     "checkpoint_rpm",
@@ -27,9 +32,12 @@ SPINUP_SUMMARY_CSV_COLUMNS: tuple[str, ...] = (
     "D_eff_at_7100_rpm",
     "thrust_at_7100_rpm",
     "reference_thrust_at_7100_rpm",
-    "thrust_ratio_at_7100_rpm",
-    "current_pretest_ratio_target",
+    "ideal_geometry_ratio_at_7100_rpm",
+    "current_pretest_ratio",
     "project_target_ratio",
+    "current_calibrated_thrust_at_7100_rpm",
+    "target_thrust_at_7100_rpm",
+    "current_calibrated_gap_to_target_percent",
 )
 
 
@@ -68,9 +76,11 @@ class TubitakValidationSummary:
             "(aerodynamic, not stowed envelope)",
             f"Folded-start theta       : {self.folded_start_theta_deg:.1f}°",
             f"Lift reference fraction  : {self.lift_reference_fraction:.0%} "
-            "(pretest foldable vs same-diameter standard propeller)",
+            "(TÜBİTAK pretest foldable vs same-diameter standard propeller; "
+            "calibration reference, not an automatic model result)",
             f"Lift target fraction     : {self.lift_target_fraction:.0%} "
-            "(project goal; future BEM/CFD/experiment calibration)",
+            "(TÜBİTAK project goal; future BEM/CFD/experiment calibration)",
+            IDEAL_GEOMETRY_RATIO_NOTE,
         ]
 
 
@@ -85,9 +95,12 @@ class SpinUpCheckpointSummary:
     D_eff_at_7100_rpm: float | None
     thrust_at_7100_rpm: float | None
     reference_thrust_at_7100_rpm: float
-    thrust_ratio_at_7100_rpm: float | None
-    current_pretest_ratio_target: float
+    ideal_geometry_ratio_at_7100_rpm: float | None
+    current_pretest_ratio: float
     project_target_ratio: float
+    current_calibrated_thrust_at_7100_rpm: float
+    target_thrust_at_7100_rpm: float
+    current_calibrated_gap_to_target_percent: float
 
     def to_csv_row(self) -> dict[str, Any]:
         row = asdict(self)
@@ -146,9 +159,19 @@ def spinup_checkpoint_summary(
         rho=rho,
     )
     time_s, theta_deg, d_eff, thrust = _interpolate_at_rpm(states, checkpoint_rpm)
-    ratio = None
+    ideal_geometry_ratio = None
     if thrust is not None and reference_thrust > 0.0:
-        ratio = thrust / reference_thrust
+        ideal_geometry_ratio = thrust / reference_thrust
+
+    current_calibrated_thrust = reference_thrust * TUBITAK_LIFT_REFERENCE_FRACTION
+    target_thrust = reference_thrust * TUBITAK_LIFT_TARGET_FRACTION
+    gap_to_target_percent = 0.0
+    if TUBITAK_LIFT_TARGET_FRACTION > 0.0:
+        gap_to_target_percent = (
+            (TUBITAK_LIFT_TARGET_FRACTION - TUBITAK_LIFT_REFERENCE_FRACTION)
+            / TUBITAK_LIFT_TARGET_FRACTION
+            * 100.0
+        )
 
     return SpinUpCheckpointSummary(
         variant_id=config.id,
@@ -158,9 +181,12 @@ def spinup_checkpoint_summary(
         D_eff_at_7100_rpm=d_eff,
         thrust_at_7100_rpm=thrust,
         reference_thrust_at_7100_rpm=reference_thrust,
-        thrust_ratio_at_7100_rpm=ratio,
-        current_pretest_ratio_target=TUBITAK_LIFT_REFERENCE_FRACTION,
+        ideal_geometry_ratio_at_7100_rpm=ideal_geometry_ratio,
+        current_pretest_ratio=TUBITAK_LIFT_REFERENCE_FRACTION,
         project_target_ratio=TUBITAK_LIFT_TARGET_FRACTION,
+        current_calibrated_thrust_at_7100_rpm=current_calibrated_thrust,
+        target_thrust_at_7100_rpm=target_thrust,
+        current_calibrated_gap_to_target_percent=gap_to_target_percent,
     )
 
 

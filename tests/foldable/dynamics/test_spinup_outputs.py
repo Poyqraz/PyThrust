@@ -102,9 +102,20 @@ def test_spinup_checkpoint_summary_csv(rt75_spinup_states, tmp_path: Path) -> No
     assert len(rows) == 1
     row = rows[0]
     assert float(row["checkpoint_rpm"]) == pytest.approx(TUBITAK_PRETEST_RPM)
-    assert float(row["current_pretest_ratio_target"]) == pytest.approx(
+    assert float(row["current_pretest_ratio"]) == pytest.approx(
         TUBITAK_LIFT_REFERENCE_FRACTION
     )
     assert float(row["project_target_ratio"]) == pytest.approx(TUBITAK_LIFT_TARGET_FRACTION)
     assert summary.reference_thrust_at_7100_rpm > 0.0
-    assert summary.thrust_ratio_at_7100_rpm is not None
+    assert summary.ideal_geometry_ratio_at_7100_rpm is not None
+    assert summary.current_calibrated_thrust_at_7100_rpm == pytest.approx(
+        summary.reference_thrust_at_7100_rpm * TUBITAK_LIFT_REFERENCE_FRACTION
+    )
+    assert summary.target_thrust_at_7100_rpm == pytest.approx(
+        summary.reference_thrust_at_7100_rpm * TUBITAK_LIFT_TARGET_FRACTION
+    )
+    assert summary.current_calibrated_gap_to_target_percent == pytest.approx(
+        (TUBITAK_LIFT_TARGET_FRACTION - TUBITAK_LIFT_REFERENCE_FRACTION)
+        / TUBITAK_LIFT_TARGET_FRACTION
+        * 100.0
+    )

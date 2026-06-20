@@ -7,6 +7,7 @@ from .aero_effectiveness import (
     deployment_progress_from_theta,
 )
 from .calibration import (
+    IDEAL_GEOMETRY_RATIO_NOTE,
     SPINUP_SUMMARY_CSV_COLUMNS,
     TUBITAK_LIFT_REFERENCE_FRACTION,
     TUBITAK_LIFT_TARGET_FRACTION,
@@ -44,6 +45,7 @@ from .throttle import ThrottleProfileName, throttle_at_time
 
 __all__ = [
     "FOLDED_MIN_AERO_EFFECTIVENESS",
+    "IDEAL_GEOMETRY_RATIO_NOTE",
     "MODEL_ASSUMPTIONS",
     "SPINUP_CSV_COLUMNS",
     "SPINUP_SUMMARY_CSV_COLUMNS",
