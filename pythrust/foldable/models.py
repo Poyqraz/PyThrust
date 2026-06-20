@@ -47,6 +47,8 @@ class HingeConfig:
     deployment_bias_angle_deg: float = 0.0
     initial_stow_offset_deg: float = 0.0
     cent_moment_geometry_scale: float = 1.0
+    open_latch_diagnostic: bool = False
+    open_latch_capture_deg: float = 5.0
 
 
 @dataclass(frozen=True)
@@ -216,6 +218,8 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
             deployment_bias_angle_deg=float(hinge_raw.get("deployment_bias_angle_deg", 0.0)),
             initial_stow_offset_deg=float(hinge_raw.get("initial_stow_offset_deg", 0.0)),
             cent_moment_geometry_scale=float(hinge_raw.get("cent_moment_geometry_scale", 1.0)),
+            open_latch_diagnostic=bool(hinge_raw.get("open_latch_diagnostic", False)),
+            open_latch_capture_deg=float(hinge_raw.get("open_latch_capture_deg", 5.0)),
         ),
         kinematics=KinematicsConfig(
             model=str(kinematics_raw.get("model", "linear_saturation")),

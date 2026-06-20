@@ -36,6 +36,22 @@ class HingeState:
         return math.degrees(self.theta_ddot_rad_s2)
 
 
+def _apply_open_latch_diagnostic(
+    theta_rad: float,
+    theta_dot_rad_s: float,
+    config: FoldablePropellerConfig,
+) -> tuple[float, float]:
+    """Optional diagnostic latch: hold at open limit once capture threshold is reached."""
+    hinge = config.hinge
+    if not hinge.open_latch_diagnostic:
+        return theta_rad, theta_dot_rad_s
+    hi = math.radians(hinge.theta_max_deg)
+    capture = math.radians(max(hinge.open_latch_capture_deg, 0.0))
+    if theta_rad >= hi - capture:
+        return hi, 0.0
+    return theta_rad, theta_dot_rad_s
+
+
 def _apply_limit_contact(
     theta_rad: float,
     theta_dot_rad_s: float,
@@ -96,6 +112,24 @@ def integrate_hinge_step(
     if inertia <= 0.0:
         raise ValueError("hinge inertia must be positive for second_order dynamics.")
 
+    latched_theta, latched_dot = _apply_open_latch_diagnostic(
+        state.theta_rad, state.theta_dot_rad_s, config
+    )
+    hi = math.radians(config.hinge.theta_max_deg)
+    if config.hinge.open_latch_diagnostic:
+        if latched_theta != state.theta_rad or latched_dot != state.theta_dot_rad_s:
+            return HingeState(
+                theta_rad=latched_theta,
+                theta_dot_rad_s=0.0,
+                theta_ddot_rad_s2=0.0,
+            )
+        if abs(state.theta_rad - hi) < 1e-12:
+            return HingeState(
+                theta_rad=hi,
+                theta_dot_rad_s=0.0,
+                theta_ddot_rad_s2=0.0,
+            )
+
     moments0 = compute_hinge_moments(
         rpm=rpm,
         theta_deg=state.theta_deg,
@@ -119,6 +153,9 @@ def integrate_hinge_step(
     theta_dot_new = state.theta_dot_rad_s + a2 * dt_s
     theta_new = state.theta_rad + theta_dot_new * dt_s
     theta_new, theta_dot_new = _apply_limit_contact(theta_new, theta_dot_new, config)
+    theta_new, theta_dot_new = _apply_open_latch_diagnostic(
+        theta_new, theta_dot_new, config
+    )
 
     moments_final = compute_hinge_moments(
         rpm=rpm,

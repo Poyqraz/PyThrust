@@ -44,6 +44,20 @@ from .hinge_moments import HingeMomentComponents, compute_hinge_moments
 from ..kinematics import classify_physics_hinge_state
 from .integrator import euler_step
 from .motor import algebraic_motor_current, applied_voltage_v, motor_torque_nm
+from .physics_deployment_sweep import (
+    DEPLOYMENT_BIAS_STIFFNESS_SWEEP_COLUMNS,
+    DeploymentSweepRow,
+    run_deployment_bias_stiffness_sweep,
+    run_open_latch_diagnostic_cases,
+    write_deployment_bias_stiffness_sweep_csv,
+)
+from .physics_tip_thrust_diagnostic import (
+    TIP_THRUST_ACTIVATION_COLUMNS,
+    TipThrustActivationRow,
+    run_tip_thrust_activation_diagnostic,
+    run_tip_thrust_latch_comparison,
+    write_tip_thrust_activation_csv,
+)
 from .physics_moment_geometry_diagnostic import (
     MOMENT_GEOMETRY_DIAGNOSTIC_COLUMNS,
     MomentGeometryDiagnosticRow,
@@ -66,7 +80,7 @@ from .physics_figures import plot_physics_debug_figures
 from .physics_simulation import run_prescribed_rpm_physics
 from .physics_state import PHYSICS_DEBUG_CSV_COLUMNS, PhysicsState, write_physics_csv
 from .prescribed_rpm import PrescribedRpmConfig
-from .split_thrust import SplitThrustResult, compute_split_thrust
+from .split_thrust import SplitThrustResult, TipThrustBreakdown, compute_split_thrust, compute_tip_thrust_breakdown
 from .rotor import default_rotor_inertia_kgm2, rotor_acceleration_rad_s2
 from .simulation import (
     MODEL_ASSUMPTIONS,
@@ -81,7 +95,12 @@ from .throttle import ThrottleProfileName, throttle_at_time
 
 __all__ = [
     "FOLDED_MIN_AERO_EFFECTIVENESS",
+    "DEPLOYMENT_BIAS_STIFFNESS_SWEEP_COLUMNS",
     "DIAGNOSTIC_SWEEP_COLUMNS",
+    "DeploymentSweepRow",
+    "TIP_THRUST_ACTIVATION_COLUMNS",
+    "TipThrustActivationRow",
+    "TipThrustBreakdown",
     "HingeDynamicsMode",
     "HingeMomentComponents",
     "HingeState",
@@ -120,6 +139,7 @@ __all__ = [
     "classify_physics_hinge_state",
     "compute_hinge_moments",
     "compute_split_thrust",
+    "compute_tip_thrust_breakdown",
     "concept_frame_from_dynamic",
     "default_rotor_inertia_kgm2",
     "default_throttle_schedule",
@@ -139,9 +159,13 @@ __all__ = [
     "reference_propeller_thrust_n",
     "rotor_acceleration_rad_s2",
     "rotor_azimuth_rad",
+    "run_deployment_bias_stiffness_sweep",
     "run_dt_sensitivity_cases",
+    "run_open_latch_diagnostic_cases",
     "run_hinge_parameter_diagnostic_sweep",
     "run_moment_geometry_diagnostic_cases",
+    "run_tip_thrust_activation_diagnostic",
+    "run_tip_thrust_latch_comparison",
     "run_prescribed_rpm_physics",
     "run_spinup_simulation",
     "scaled_hinge_config",
@@ -150,7 +174,9 @@ __all__ = [
     "throttle_at_time",
     "tubitak_validation_summary",
     "visual_state_from_dynamic",
+    "write_deployment_bias_stiffness_sweep_csv",
     "write_diagnostic_sweep_csv",
+    "write_tip_thrust_activation_csv",
     "write_moment_geometry_diagnostic_csv",
     "write_physics_csv",
     "write_spinup_csv",

@@ -42,6 +42,61 @@ def _thrust_from_diameter(
     return ct * rho * (n**2) * (diameter_m**4) * scale
 
 
+@dataclass(frozen=True)
+class TipThrustBreakdown:
+    """Decomposed tip thrust for activation diagnostics."""
+
+    tip_radial_extension_m: float
+    d_tip_equiv_m: float
+    geometric_effective_diameter_m: float
+    aerodynamic_effective_diameter_m: float
+    exposed_tip_fraction: float
+    tip_aero_effectiveness: float
+    thrust_tip_raw_n: float
+    thrust_tip_after_effectiveness_n: float
+    thrust_tip_final_n: float
+
+
+def compute_tip_thrust_breakdown(
+    *,
+    rpm: float,
+    theta_deg: float,
+    tip_aero_effectiveness: float,
+    config: FoldablePropellerConfig,
+    prop_entry: PropellerEntry,
+    rho: float = 1.225,
+) -> TipThrustBreakdown:
+    """Expose tip thrust pipeline stages for diagnostic analysis."""
+    geometry = config.geometry
+    d_root = root_diameter_m(geometry)
+    tip_ext = tip_radial_extension_from_config(theta_deg, config)
+    d_geo = geometric_effective_diameter_from_config(theta_deg, config)
+    eff = max(0.0, min(1.0, tip_aero_effectiveness))
+    d_aero = aerodynamic_effective_diameter_m(
+        d_geo,
+        root_diameter_m=d_root,
+        tip_aero_effectiveness=eff,
+    )
+    length = geometry.tip_segment_length_m
+    exposed = max(0.0, min(1.0, tip_ext / length)) if length > 0.0 else 0.0
+    d_tip_equiv = 2.0 * tip_ext if tip_ext > 0.0 else 0.0
+    thrust_raw = _thrust_from_diameter(rpm, d_tip_equiv, prop_entry, rho=rho, scale=1.0)
+    thrust_after = _thrust_from_diameter(
+        rpm, d_tip_equiv, prop_entry, rho=rho, scale=eff
+    )
+    return TipThrustBreakdown(
+        tip_radial_extension_m=tip_ext,
+        d_tip_equiv_m=d_tip_equiv,
+        geometric_effective_diameter_m=d_geo,
+        aerodynamic_effective_diameter_m=d_aero,
+        exposed_tip_fraction=exposed,
+        tip_aero_effectiveness=eff,
+        thrust_tip_raw_n=thrust_raw,
+        thrust_tip_after_effectiveness_n=thrust_after,
+        thrust_tip_final_n=thrust_after,
+    )
+
+
 def compute_split_thrust(
     *,
     rpm: float,
