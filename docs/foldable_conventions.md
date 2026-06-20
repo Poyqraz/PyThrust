@@ -225,10 +225,20 @@ static/quasi-static foldable model.
 - `outputs/foldable/dynamics/dynamic_spinup_RT75_25_ramp.csv` — linear ramp startup
   (`ramp_time_s=0.5`)
 - `outputs/foldable/dynamics/dynamic_spinup_RT75_25.csv` — legacy alias of step CSV
-- `outputs/foldable/dynamics/figures/spinup_RT75_25.png` — 4-panel summary
-  (RPM, θ, thrust, D_eff vs time)
-- `outputs/foldable/dynamics/frames/RT75_25/` — rotating concept-style PNG frames
-  + `manifest.json`
+- `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25_step.csv` — TÜBİTAK
+  checkpoint summary (step profile)
+- `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25_ramp.csv` — TÜBİTAK
+  checkpoint summary (ramp profile)
+- `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25.csv` — legacy alias of
+  step summary
+- `outputs/foldable/dynamics/figures/spinup_RT75_25_step.png` — 4-panel step summary
+  (RPM, θ, thrust, D_eff vs time) with TÜBİTAK 7100 rpm annotations
+- `outputs/foldable/dynamics/figures/spinup_RT75_25_ramp.png` — 4-panel ramp summary
+- `outputs/foldable/dynamics/figures/spinup_RT75_25.png` — legacy alias of step figure
+- `outputs/foldable/dynamics/frames/RT75_25/` — rotating **single-arm concept frame**
+  PNGs (step profile) + `manifest.json`
+- `outputs/foldable/dynamics/frames/RT75_25_ramp/` — ramp-profile frames with the
+  same single-arm concept visualization
 
 **Optional config fields:**
 
@@ -244,7 +254,12 @@ static/quasi-static foldable model.
 - Throttle `step` profile is an ideal command (instant full throttle after t=0).
 - Throttle `linear_ramp` profile is more realistic for startup visualization
   (default `ramp_time_s=0.5` s).
-- Checkpoint summary: `dynamic_spinup_summary_RT75_25.csv` at 7100 rpm.
+- Checkpoint summary CSVs at 7100 rpm (per profile); legacy step alias kept.
+- Spin-up figures include input profile caption, V1 model notes, and TÜBİTAK
+  checkpoint lines at 7100 rpm (horizontal) and `time_to_7100_rpm` (vertical).
+- Dynamic frame export uses a **single-arm concept frame**: root + hinged tip segment
+  only; it does **not** yet represent a full two-blade rotor. Optional text overlay
+  shows θ, hinge state, D_eff, thrust, and input profile label.
 - `ideal_geometry_ratio_at_7100_rpm` = simulated thrust / reference open propeller
   thrust at 7100 rpm when the model is fully deployed; **not** experimental
   performance (assumes no profile/hinge/manufacturing loss once open).

@@ -31,6 +31,7 @@ from ..visualization.concept.style import (
 )
 from .dynamics_frame import concept_frame_from_dynamic, rotor_azimuth_rad
 from .state import DynamicState
+from .throttle import ThrottleProfileName
 
 Point = Tuple[float, float]
 PolygonPoints = List[Point]
@@ -38,11 +39,18 @@ CircleSpec = Tuple[float, float, float]
 
 DEFAULT_FRAME_COUNT = 30
 FRAME_FILENAME_WIDTH = 3
+SINGLE_ARM_CONCEPT_NOTE = "single-arm concept frame (not a full two-blade rotor yet)"
 
 
-def spinup_frames_dir(output_dir: Path, variant_label: str) -> Path:
-    """``outputs/foldable/dynamics/frames/<variant_label>/``."""
-    return output_dir / "frames" / variant_label
+def spinup_frames_dir(
+    output_dir: Path,
+    variant_label: str,
+    *,
+    profile_suffix: str | None = None,
+) -> Path:
+    """``outputs/foldable/dynamics/frames/<variant_label>[_suffix]/``."""
+    name = variant_label if not profile_suffix else f"{variant_label}_{profile_suffix}"
+    return output_dir / "frames" / name
 
 
 def _frame_filename(index: int) -> str:
@@ -82,12 +90,63 @@ def _plot_limits(
     return xmin - pad, xmax + pad, ymin - pad, ymax + pad
 
 
+def _profile_label(
+    throttle_profile: ThrottleProfileName,
+    ramp_time_s: float | None,
+) -> str:
+    if throttle_profile == "linear_ramp":
+        ramp = ramp_time_s if ramp_time_s is not None else 0.5
+        return f"profile=linear_ramp ({ramp:g} s)"
+    return "profile=step"
+
+
+def _overlay_text(
+    dynamic: DynamicState,
+    *,
+    profile_label: str,
+) -> str:
+    return (
+        f"{profile_label}\n"
+        f"{SINGLE_ARM_CONCEPT_NOTE}\n"
+        f"θ={dynamic.theta_deg:.1f}°  {dynamic.hinge_state}\n"
+        f"D_eff={dynamic.effective_diameter_m:.3f} m  T={dynamic.thrust_n:.3f} N"
+    )
+
+
+def _draw_text_overlay(
+    axis: Axes,
+    dynamic: DynamicState,
+    *,
+    profile_label: str,
+) -> None:
+    axis.text(
+        0.02,
+        0.02,
+        _overlay_text(dynamic, profile_label=profile_label),
+        transform=axis.transAxes,
+        fontsize=6.5,
+        va="bottom",
+        ha="left",
+        color="0.25",
+        bbox={
+            "boxstyle": "round,pad=0.25",
+            "facecolor": "white",
+            "alpha": 0.78,
+            "edgecolor": "0.8",
+            "linewidth": 0.5,
+        },
+        zorder=10,
+    )
+
+
 def draw_rotated_dynamic_state(
     axis: Axes,
     config: FoldablePropellerConfig,
     dynamic: DynamicState,
     *,
     title: str | None = None,
+    show_text_overlay: bool = False,
+    profile_label: str = "profile=step",
 ) -> None:
     """Draw concept blades rotated by ``psi(t)``; motor hub stays fixed."""
     frame = concept_frame_from_dynamic(config, dynamic)
@@ -157,6 +216,8 @@ def draw_rotated_dynamic_state(
     axis.axis("off")
     if title:
         axis.set_title(title, fontsize=9, pad=6)
+    if show_text_overlay:
+        _draw_text_overlay(axis, dynamic, profile_label=profile_label)
 
 
 def _sample_states(
@@ -179,19 +240,31 @@ def export_spinup_frames(
     *,
     variant_label: str,
     frame_count: int = DEFAULT_FRAME_COUNT,
+    throttle_profile: ThrottleProfileName = "step",
+    ramp_time_s: float | None = None,
+    show_text_overlay: bool = True,
+    profile_suffix: str | None = None,
 ) -> list[Path]:
     """Export sampled PNG frames with rotor azimuth rotation."""
-    frames_dir = spinup_frames_dir(output_dir, variant_label)
+    frames_dir = spinup_frames_dir(output_dir, variant_label, profile_suffix=profile_suffix)
     frames_dir.mkdir(parents=True, exist_ok=True)
 
+    profile_label = _profile_label(throttle_profile, ramp_time_s)
     sampled = _sample_states(states, frame_count)
     written: list[Path] = []
-    manifest_rows: list[dict[str, float | int | str]] = []
+    manifest_rows: list[dict[str, float | int | str | bool | None]] = []
 
     for index, dynamic in enumerate(sampled):
         fig, axis = plt.subplots(figsize=STATE_FIGSIZE)
-        title = f"t={dynamic.time_s:.2f} s  rpm={dynamic.rpm:.0f}"
-        draw_rotated_dynamic_state(axis, config, dynamic, title=title)
+        title = f"{profile_label} | t={dynamic.time_s:.2f} s  rpm={dynamic.rpm:.0f}"
+        draw_rotated_dynamic_state(
+            axis,
+            config,
+            dynamic,
+            title=title,
+            show_text_overlay=show_text_overlay,
+            profile_label=profile_label,
+        )
         path = frames_dir / _frame_filename(index)
         fig.savefig(path, dpi=FIGURE_DPI, facecolor=BG_WHITE, bbox_inches="tight")
         plt.close(fig)
@@ -205,6 +278,7 @@ def export_spinup_frames(
                 "theta_deg": dynamic.theta_deg,
                 "rotor_azimuth_deg": dynamic.rotor_azimuth_deg,
                 "effective_diameter_m": dynamic.effective_diameter_m,
+                "thrust_n": dynamic.thrust_n,
                 "hinge_state": dynamic.hinge_state,
             }
         )
@@ -213,6 +287,10 @@ def export_spinup_frames(
         "variant_label": variant_label,
         "frame_count": len(written),
         "dynamic_rotation": True,
+        "throttle_profile": throttle_profile,
+        "ramp_time_s": ramp_time_s,
+        "frame_kind": SINGLE_ARM_CONCEPT_NOTE,
+        "show_text_overlay": show_text_overlay,
         "frames": manifest_rows,
     }
     (frames_dir / "manifest.json").write_text(

@@ -42,10 +42,30 @@ def rt75_spinup_states():
 
 def test_plot_spinup_summary_writes_png(rt75_spinup_states, tmp_path: Path) -> None:
     variant, states = rt75_spinup_states
+    db = PropellerDatabase()
+    db.load(PROP_DB_PATH, strict=False)
+    prop_entry = db.get(variant.reference_propeller_id)
+    assert prop_entry is not None
+    checkpoint = spinup_checkpoint_summary(states, variant, prop_entry)
     output = plot_spinup_summary(
         states,
-        tmp_path / "spinup_RT75_25.png",
+        tmp_path / "spinup_RT75_25_step.png",
         variant_label="RT75_25",
+        throttle_profile="step",
+        checkpoint=checkpoint,
+    )
+    assert output.is_file()
+    assert output.stat().st_size > 0
+
+
+def test_plot_spinup_summary_ramp_profile(rt75_spinup_states, tmp_path: Path) -> None:
+    variant, states = rt75_spinup_states
+    output = plot_spinup_summary(
+        states,
+        tmp_path / "spinup_RT75_25_ramp.png",
+        variant_label="RT75_25",
+        throttle_profile="linear_ramp",
+        ramp_time_s=0.5,
     )
     assert output.is_file()
     assert output.stat().st_size > 0
@@ -59,6 +79,8 @@ def test_export_spinup_frames_writes_pngs(rt75_spinup_states, tmp_path: Path) ->
         tmp_path,
         variant_label="RT75_25",
         frame_count=6,
+        throttle_profile="step",
+        show_text_overlay=True,
     )
     assert len(written) == 6
     assert (tmp_path / "frames" / "RT75_25" / "frame_000.png").is_file()
@@ -67,6 +89,31 @@ def test_export_spinup_frames_writes_pngs(rt75_spinup_states, tmp_path: Path) ->
     )
     assert manifest["dynamic_rotation"] is True
     assert manifest["frame_count"] == 6
+    assert manifest["throttle_profile"] == "step"
+    assert manifest["show_text_overlay"] is True
+    assert "single-arm concept frame" in manifest["frame_kind"]
+    assert manifest["frames"][0]["thrust_n"] is not None
+
+
+def test_export_spinup_frames_ramp_profile_suffix(rt75_spinup_states, tmp_path: Path) -> None:
+    variant, states = rt75_spinup_states
+    written = export_spinup_frames(
+        states,
+        variant,
+        tmp_path,
+        variant_label="RT75_25",
+        frame_count=4,
+        throttle_profile="linear_ramp",
+        ramp_time_s=0.5,
+        profile_suffix="ramp",
+    )
+    assert len(written) == 4
+    assert (tmp_path / "frames" / "RT75_25_ramp" / "frame_000.png").is_file()
+    manifest = json.loads(
+        (tmp_path / "frames" / "RT75_25_ramp" / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert manifest["throttle_profile"] == "linear_ramp"
+    assert manifest["ramp_time_s"] == pytest.approx(0.5)
 
 
 def test_tubitak_validation_summary(rt75_spinup_states) -> None:

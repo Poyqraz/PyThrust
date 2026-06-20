@@ -27,7 +27,11 @@ from .dynamics_frame import (
     visual_state_from_dynamic,
 )
 from .figures import plot_spinup_summary
-from .frames import export_spinup_frames, spinup_frames_dir
+from .frames import (
+    SINGLE_ARM_CONCEPT_NOTE,
+    export_spinup_frames,
+    spinup_frames_dir,
+)
 from .hinge import quasi_static_theta_deg
 from .integrator import euler_step
 from .motor import algebraic_motor_current, applied_voltage_v, motor_torque_nm
@@ -47,6 +51,7 @@ __all__ = [
     "FOLDED_MIN_AERO_EFFECTIVENESS",
     "IDEAL_GEOMETRY_RATIO_NOTE",
     "MODEL_ASSUMPTIONS",
+    "SINGLE_ARM_CONCEPT_NOTE",
     "SPINUP_CSV_COLUMNS",
     "SPINUP_SUMMARY_CSV_COLUMNS",
     "TUBITAK_LIFT_REFERENCE_FRACTION",
