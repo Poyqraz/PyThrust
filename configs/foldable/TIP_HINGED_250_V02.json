@@ -27,7 +27,11 @@
     "stop_margin_deg": 2.0,
     "stop_stiffness_nm_per_rad": 2.0,
     "aero_hinge_moment_gain": 0.0005,
-    "tip_aero_lag_tau_s": 0.12
+    "tip_aero_lag_tau_s": 0.12,
+    "cent_moment_model": "geometric_radial",
+    "deployment_bias_angle_deg": 0.0,
+    "initial_stow_offset_deg": 0.0,
+    "cent_moment_geometry_scale": 1.0
   },
   "kinematics": {
     "kinematics_mode": "moment_based",

@@ -5,9 +5,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from ..kinematics import effective_tip_cg_from_hinge_m
 from ..models import FoldablePropellerConfig
 from ..geometry_helpers import tip_radial_extension_from_config
+from .hinge_moment_geometry import centrifugal_moment_nm_for_model
 
 
 @dataclass(frozen=True)
@@ -23,41 +23,12 @@ class HingeMomentComponents:
     M_net_nm: float
 
 
-def _lever_arm_m(
-    theta_deg: float,
-    tip_length_m: float,
-    *,
-    theta_min_deg: float,
-    theta_max_deg: float,
-) -> float:
-    """Opening lever arm: maximum when folded, decreases toward open."""
-    span = theta_max_deg - theta_min_deg
-    if abs(span) < 1e-12:
-        return 0.0
-    progress = (theta_deg - theta_min_deg) / span
-    progress = max(0.0, min(1.0, progress))
-    return tip_length_m * (1.0 - progress)
-
-
 def centrifugal_moment_nm(
     rpm: float,
     theta_deg: float,
     config: FoldablePropellerConfig,
 ) -> float:
-    if rpm <= 0.0:
-        return 0.0
-    omega = rpm * 2.0 * math.pi / 60.0
-    geometry = config.geometry
-    r_cg = effective_tip_cg_from_hinge_m(geometry)
-    lever = _lever_arm_m(
-        theta_deg,
-        geometry.tip_segment_length_m,
-        theta_min_deg=config.hinge.theta_min_deg,
-        theta_max_deg=config.hinge.theta_max_deg,
-    )
-    if lever <= 0.0:
-        return 0.0
-    return geometry.tip_segment_mass_kg * omega**2 * r_cg * lever
+    return centrifugal_moment_nm_for_model(rpm, theta_deg, config)
 
 
 def stiffness_moment_nm(theta_deg: float, config: FoldablePropellerConfig) -> float:

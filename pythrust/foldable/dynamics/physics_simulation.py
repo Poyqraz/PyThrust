@@ -6,7 +6,7 @@ from typing import List
 
 from pythrust.propellers.database import PropellerEntry
 
-from ..kinematics import classify_hinge_state
+from ..kinematics import classify_physics_hinge_state
 from ..models import FoldablePropellerConfig
 from .hinge_dynamics import HingeState, initial_hinge_state, integrate_hinge_step, hinge_moments_at_state
 from .physics_state import PhysicsState
@@ -56,9 +56,10 @@ def run_prescribed_rpm_physics(
             + moments.M_friction_nm
             + moments.M_stop_nm
         )
-        hinge_state = classify_hinge_state(
+        hinge_state = classify_physics_hinge_state(
             rpm,
             hinge.theta_deg,
+            hinge.theta_dot_deg_s,
             opening,
             resisting,
             config.hinge,

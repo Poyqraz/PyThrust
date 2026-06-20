@@ -95,6 +95,45 @@ def resisting_moment_nm(theta_deg: float, hinge: HingeConfig) -> float:
     )
 
 
+PHYSICS_HINGE_STATE_NOTES: dict[str, str] = {
+    "folded": "At theta_min, opening moment does not exceed resistance",
+    "opening": "Transient or moving — not at rest equilibrium",
+    "equilibrium_partial": "At rest between limits; M_cent + M_aero balances stiffness/friction",
+    "open_stop": "At theta_max; held by mechanical stop/latch (not moment balance)",
+}
+
+
+def classify_physics_hinge_state(
+    rpm: float,
+    theta_deg: float,
+    theta_dot_deg_s: float,
+    opening_moment: float,
+    resisting_moment: float,
+    hinge: HingeConfig,
+    *,
+    angle_tol_deg: float = 0.5,
+    velocity_tol_deg_s: float = 1.0,
+) -> str:
+    """V2 prescribed-RPM hinge state for physics path."""
+    if rpm <= 0.0:
+        return "folded"
+
+    at_min = abs(theta_deg - hinge.theta_min_deg) <= angle_tol_deg
+    at_max = abs(theta_deg - hinge.theta_max_deg) <= angle_tol_deg
+    at_rest = abs(theta_dot_deg_s) <= velocity_tol_deg_s
+
+    if at_max:
+        return "open_stop"
+
+    if at_min and at_rest and opening_moment <= resisting_moment + 1e-9:
+        return "folded"
+
+    if at_rest and not at_min:
+        return "equilibrium_partial"
+
+    return "opening"
+
+
 def classify_hinge_state(
     rpm: float,
     theta_deg: float,

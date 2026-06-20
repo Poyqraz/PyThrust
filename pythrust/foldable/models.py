@@ -43,6 +43,10 @@ class HingeConfig:
     stop_stiffness_nm_per_rad: float = 0.0
     aero_hinge_moment_gain: float = 0.0
     tip_aero_lag_tau_s: float = 0.1
+    cent_moment_model: str = "geometric_radial"
+    deployment_bias_angle_deg: float = 0.0
+    initial_stow_offset_deg: float = 0.0
+    cent_moment_geometry_scale: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -208,6 +212,10 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
             ),
             aero_hinge_moment_gain=float(hinge_raw.get("aero_hinge_moment_gain", 0.0)),
             tip_aero_lag_tau_s=float(hinge_raw.get("tip_aero_lag_tau_s", 0.1)),
+            cent_moment_model=str(hinge_raw.get("cent_moment_model", "geometric_radial")),
+            deployment_bias_angle_deg=float(hinge_raw.get("deployment_bias_angle_deg", 0.0)),
+            initial_stow_offset_deg=float(hinge_raw.get("initial_stow_offset_deg", 0.0)),
+            cent_moment_geometry_scale=float(hinge_raw.get("cent_moment_geometry_scale", 1.0)),
         ),
         kinematics=KinematicsConfig(
             model=str(kinematics_raw.get("model", "linear_saturation")),

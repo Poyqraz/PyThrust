@@ -34,9 +34,22 @@ from .frames import (
 )
 from .hinge import initial_hinge_state, integrate_hinge_step, quasi_static_theta_deg
 from .hinge_dynamics import HingeDynamicsMode, HingeState
+from .hinge_moment_geometry import (
+    CENT_MOMENT_MODELS,
+    CentMomentModel,
+    centrifugal_moment_nm_for_model,
+    initial_theta_deg,
+)
 from .hinge_moments import HingeMomentComponents, compute_hinge_moments
+from ..kinematics import classify_physics_hinge_state
 from .integrator import euler_step
 from .motor import algebraic_motor_current, applied_voltage_v, motor_torque_nm
+from .physics_moment_geometry_diagnostic import (
+    MOMENT_GEOMETRY_DIAGNOSTIC_COLUMNS,
+    MomentGeometryDiagnosticRow,
+    run_moment_geometry_diagnostic_cases,
+    write_moment_geometry_diagnostic_csv,
+)
 from .physics_stability import (
     DIAGNOSTIC_SWEEP_COLUMNS,
     STABILITY_REPORT_COLUMNS,
@@ -72,6 +85,10 @@ __all__ = [
     "HingeDynamicsMode",
     "HingeMomentComponents",
     "HingeState",
+    "CENT_MOMENT_MODELS",
+    "CentMomentModel",
+    "MOMENT_GEOMETRY_DIAGNOSTIC_COLUMNS",
+    "MomentGeometryDiagnosticRow",
     "IDEAL_GEOMETRY_RATIO_NOTE",
     "MODEL_ASSUMPTIONS",
     "PHYSICS_DEBUG_CSV_COLUMNS",
@@ -99,6 +116,8 @@ __all__ = [
     "analyze_physics_stability",
     "applied_voltage_v",
     "build_throttle_schedule",
+    "centrifugal_moment_nm_for_model",
+    "classify_physics_hinge_state",
     "compute_hinge_moments",
     "compute_split_thrust",
     "concept_frame_from_dynamic",
@@ -108,6 +127,7 @@ __all__ = [
     "euler_step",
     "export_spinup_frames",
     "initial_hinge_state",
+    "initial_theta_deg",
     "integrate_hinge_step",
     "motor_torque_nm",
     "parse_root_tip_ratios",
@@ -121,6 +141,7 @@ __all__ = [
     "rotor_azimuth_rad",
     "run_dt_sensitivity_cases",
     "run_hinge_parameter_diagnostic_sweep",
+    "run_moment_geometry_diagnostic_cases",
     "run_prescribed_rpm_physics",
     "run_spinup_simulation",
     "scaled_hinge_config",
@@ -130,6 +151,7 @@ __all__ = [
     "tubitak_validation_summary",
     "visual_state_from_dynamic",
     "write_diagnostic_sweep_csv",
+    "write_moment_geometry_diagnostic_csv",
     "write_physics_csv",
     "write_spinup_csv",
     "write_spinup_summary_csv",

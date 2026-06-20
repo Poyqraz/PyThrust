@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ..models import FoldablePropellerConfig
+from .hinge_moment_geometry import initial_theta_deg
 from .hinge_moments import HingeMomentComponents, compute_hinge_moments, default_hinge_inertia_kgm2
 
 HingeDynamicsMode = Literal["quasi_static", "second_order"]
@@ -138,9 +139,9 @@ def integrate_hinge_step(
 
 
 def initial_hinge_state(config: FoldablePropellerConfig) -> HingeState:
-    """Start folded at theta_min with zero velocity."""
+    """Start at theta_min (+ optional initial_stow_offset_deg) with zero velocity."""
     return HingeState(
-        theta_rad=math.radians(config.hinge.theta_min_deg),
+        theta_rad=math.radians(initial_theta_deg(config)),
         theta_dot_rad_s=0.0,
         theta_ddot_rad_s2=0.0,
     )

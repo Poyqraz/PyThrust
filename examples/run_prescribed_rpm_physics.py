@@ -15,8 +15,10 @@ from pythrust.foldable.dynamics import (  # noqa: E402
     quasi_static_equilibrium_theta_deg,
     run_dt_sensitivity_cases,
     run_hinge_parameter_diagnostic_sweep,
+    run_moment_geometry_diagnostic_cases,
     run_prescribed_rpm_physics,
     write_diagnostic_sweep_csv,
+    write_moment_geometry_diagnostic_csv,
     write_physics_csv,
     write_stability_report,
 )
@@ -94,12 +96,19 @@ def main() -> None:
         sweep_rows,
     )
 
+    geometry_rows = run_moment_geometry_diagnostic_cases(config, prop_entry)
+    write_moment_geometry_diagnostic_csv(
+        str(OUTPUT_DIR / "hinge_moment_geometry_diagnostic.csv"),
+        geometry_rows,
+    )
+
     print(f"Config : {V02_CONFIG}")
     print(f"Constant CSV : {csv_constant} ({len(constant_states)} rows)")
     print(f"Ramp CSV     : {csv_ramp} ({len(ramp_states)} rows)")
     print(f"Figures      : {len(figs_constant) + len(figs_ramp)} PNGs under {OUTPUT_DIR / 'figures'}")
     print(f"Stability    : {OUTPUT_DIR / 'prescribed_rpm_stability_report.csv'}")
     print(f"Sweep        : {OUTPUT_DIR / 'hinge_parameter_diagnostic_sweep.csv'}")
+    print(f"Geometry diag: {OUTPUT_DIR / 'hinge_moment_geometry_diagnostic.csv'}")
     if constant_states:
         last = constant_states[-1]
         print(
