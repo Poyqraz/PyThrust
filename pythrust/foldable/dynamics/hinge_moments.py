@@ -71,20 +71,23 @@ def damping_moment_nm(theta_dot_rad_s: float, config: FoldablePropellerConfig) -
     return config.hinge.hinge_damping_nm_s_per_rad * theta_dot_rad_s
 
 
+FRICTION_VEL_REG_RAD_S = 0.25
+
+
 def coulomb_friction_moment_nm(
     theta_dot_rad_s: float,
     M_net_without_friction_nm: float,
     config: FoldablePropellerConfig,
 ) -> float:
-    """Coulomb friction opposing motion; stick when below breakaway."""
+    """Coulomb friction with tanh regularization; full stick when below breakaway."""
     hinge = config.hinge
     coulomb = hinge.hinge_coulomb_friction_nm + hinge.hinge_friction_nm
     breakaway = hinge.hinge_breakaway_nm if hinge.hinge_breakaway_nm > 0.0 else coulomb
-    if abs(theta_dot_rad_s) < 1e-8:
-        if abs(M_net_without_friction_nm) <= breakaway:
-            return M_net_without_friction_nm
+    if abs(M_net_without_friction_nm) <= breakaway:
+        return M_net_without_friction_nm
+    if abs(theta_dot_rad_s) < 1e-9:
         return breakaway if M_net_without_friction_nm > 0.0 else -breakaway
-    return coulomb if theta_dot_rad_s > 0.0 else -coulomb
+    return coulomb * math.tanh(theta_dot_rad_s / FRICTION_VEL_REG_RAD_S)
 
 
 def stop_moment_nm(theta_deg: float, config: FoldablePropellerConfig) -> float:

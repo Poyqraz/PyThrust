@@ -37,6 +37,18 @@ from .hinge_dynamics import HingeDynamicsMode, HingeState
 from .hinge_moments import HingeMomentComponents, compute_hinge_moments
 from .integrator import euler_step
 from .motor import algebraic_motor_current, applied_voltage_v, motor_torque_nm
+from .physics_stability import (
+    DIAGNOSTIC_SWEEP_COLUMNS,
+    STABILITY_REPORT_COLUMNS,
+    StabilityMetrics,
+    analyze_physics_stability,
+    quasi_static_equilibrium_theta_deg,
+    run_dt_sensitivity_cases,
+    run_hinge_parameter_diagnostic_sweep,
+    scaled_hinge_config,
+    write_diagnostic_sweep_csv,
+    write_stability_report,
+)
 from .physics_figures import plot_physics_debug_figures
 from .physics_simulation import run_prescribed_rpm_physics
 from .physics_state import PHYSICS_DEBUG_CSV_COLUMNS, PhysicsState, write_physics_csv
@@ -56,6 +68,7 @@ from .throttle import ThrottleProfileName, throttle_at_time
 
 __all__ = [
     "FOLDED_MIN_AERO_EFFECTIVENESS",
+    "DIAGNOSTIC_SWEEP_COLUMNS",
     "HingeDynamicsMode",
     "HingeMomentComponents",
     "HingeState",
@@ -68,7 +81,9 @@ __all__ = [
     "SPINUP_CSV_COLUMNS",
     "SPINUP_REPORT_FIGURE_NOTE",
     "SPINUP_SUMMARY_CSV_COLUMNS",
+    "STABILITY_REPORT_COLUMNS",
     "SplitThrustResult",
+    "StabilityMetrics",
     "TUBITAK_LIFT_REFERENCE_FRACTION",
     "TUBITAK_LIFT_TARGET_FRACTION",
     "TUBITAK_OPEN_DIAMETER_M",
@@ -81,6 +96,7 @@ __all__ = [
     "TubitakValidationSummary",
     "aero_effectiveness_from_progress",
     "algebraic_motor_current",
+    "analyze_physics_stability",
     "applied_voltage_v",
     "build_throttle_schedule",
     "compute_hinge_moments",
@@ -97,19 +113,25 @@ __all__ = [
     "parse_root_tip_ratios",
     "plot_physics_debug_figures",
     "plot_spinup_summary",
+    "quasi_static_equilibrium_theta_deg",
     "quasi_static_theta_deg",
     "quasi_steady_aero",
     "reference_propeller_thrust_n",
     "rotor_acceleration_rad_s2",
     "rotor_azimuth_rad",
+    "run_dt_sensitivity_cases",
+    "run_hinge_parameter_diagnostic_sweep",
     "run_prescribed_rpm_physics",
     "run_spinup_simulation",
+    "scaled_hinge_config",
     "spinup_checkpoint_summary",
     "spinup_frames_dir",
     "throttle_at_time",
     "tubitak_validation_summary",
     "visual_state_from_dynamic",
+    "write_diagnostic_sweep_csv",
     "write_physics_csv",
     "write_spinup_csv",
     "write_spinup_summary_csv",
+    "write_stability_report",
 ]
