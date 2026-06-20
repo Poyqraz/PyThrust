@@ -18,7 +18,8 @@
     "rpm_full_open": 8000.0,
     "hinge_radius_m": 0.10,
     "hinge_stiffness_nm_per_rad": 0.55,
-    "hinge_friction_nm": 0.007
+    "hinge_friction_nm": 0.007,
+    "hinge_damping_nm_s_per_rad": 0.0
   },
   "kinematics": {
     "kinematics_mode": "moment_based",

@@ -8,7 +8,9 @@ MOTOR_INERTIA_KGM2 = 1.0e-5
 
 
 def default_rotor_inertia_kgm2(config: FoldablePropellerConfig) -> float:
-    """Estimate rotor inertia from blade geometry plus motor offset."""
+    """Return configured or estimated rotor inertia (kg·m²)."""
+    if config.geometry.rotor_inertia_kgm2 is not None:
+        return config.geometry.rotor_inertia_kgm2
     geometry = config.geometry
     blade_inertia = _blade_pair_inertia_kgm2(geometry)
     return blade_inertia + MOTOR_INERTIA_KGM2

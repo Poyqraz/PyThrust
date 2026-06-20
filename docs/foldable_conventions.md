@@ -214,6 +214,28 @@ context per throttle; concept opening geometry follows panel progress index.
 **Limitations:** not CAD, not CFD, not true airfoil geometry; illustrative blade
 width and motor connection in V1.
 
+## Dynamic spin-up (V1 skeleton)
+
+Time-dependent ODE layer under `pythrust/foldable/dynamics/` — additive to the
+static/quasi-static foldable model.
+
+**Outputs:**
+
+- `outputs/foldable/dynamics/dynamic_spinup_RT75_25.csv` — time history
+- `outputs/foldable/dynamics/figures/spinup_RT75_25.png` — 4-panel summary
+  (RPM, θ, thrust, D_eff vs time)
+- `outputs/foldable/dynamics/frames/RT75_25/` — rotating concept-style PNG frames
+  + `manifest.json`
+
+**Optional config fields:**
+
+- `geometry.rotor_inertia_kgm2` — override estimated rotor inertia
+- `hinge.hinge_damping_nm_s_per_rad` — reserved for future hinge ODE (0 in V1)
+
+**TÜBİTAK reference hooks** (`dynamics/calibration.py`): 25 cm open diameter,
+14 cm stowed envelope, 7100 rpm pretest, 70% / 85% lift calibration targets
+(future BEM/CFD/experiment).
+
 ## Çıktı Dosyaları
 
 Sweep ve karşılaştırma tabloları `outputs/foldable/` altında CSV olarak

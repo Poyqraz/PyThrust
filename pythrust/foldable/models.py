@@ -20,6 +20,7 @@ class FoldableGeometry:
     blade_count: int = 2
     tip_segment_cg_from_hinge_m: float = 0.0
     stowed_envelope_diameter_m: float | None = None
+    rotor_inertia_kgm2: float | None = None
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class HingeConfig:
     hinge_radius_m: float = 0.0
     hinge_stiffness_nm_per_rad: float = 0.008
     hinge_friction_nm: float = 0.0
+    hinge_damping_nm_s_per_rad: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -163,6 +165,11 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
                 if geometry_raw.get("stowed_envelope_diameter_m") is not None
                 else None
             ),
+            rotor_inertia_kgm2=(
+                float(geometry_raw["rotor_inertia_kgm2"])
+                if geometry_raw.get("rotor_inertia_kgm2") is not None
+                else None
+            ),
         ),
         hinge=HingeConfig(
             theta_min_deg=float(hinge_raw["theta_min_deg"]),
@@ -174,6 +181,9 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
                 hinge_raw.get("hinge_stiffness_nm_per_rad", 0.008)
             ),
             hinge_friction_nm=float(hinge_raw.get("hinge_friction_nm", 0.0)),
+            hinge_damping_nm_s_per_rad=float(
+                hinge_raw.get("hinge_damping_nm_s_per_rad", 0.0)
+            ),
         ),
         kinematics=KinematicsConfig(
             model=str(kinematics_raw.get("model", "linear_saturation")),

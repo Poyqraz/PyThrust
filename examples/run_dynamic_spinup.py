@@ -1,4 +1,4 @@
-"""Run dynamic spin-up simulation and export CSV (V1 skeleton)."""
+"""Run dynamic spin-up simulation and export CSV, figures, and frames."""
 
 from __future__ import annotations
 
@@ -11,7 +11,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from pythrust.foldable.dynamics import (  # noqa: E402
     MODEL_ASSUMPTIONS,
     SpinUpConfig,
+    export_spinup_frames,
+    plot_spinup_summary,
     run_spinup_simulation,
+    tubitak_validation_summary,
     write_spinup_csv,
 )
 from pythrust.foldable.models import load_config  # noqa: E402
@@ -19,7 +22,10 @@ from pythrust.foldable.variants import make_variant_config  # noqa: E402
 from pythrust.propellers import PropellerDatabase  # noqa: E402
 
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "foldable" / "TIP_HINGED_250_V01.json"
-OUTPUT_PATH = PROJECT_ROOT / "outputs" / "foldable" / "dynamics" / "dynamic_spinup_RT75_25.csv"
+OUTPUT_DIR = PROJECT_ROOT / "outputs" / "foldable" / "dynamics"
+CSV_PATH = OUTPUT_DIR / "dynamic_spinup_RT75_25.csv"
+FIGURE_PATH = OUTPUT_DIR / "figures" / "spinup_RT75_25.png"
+VARIANT_LABEL = "RT75_25"
 ROOT_RATIO = 75
 TIP_RATIO = 25
 
@@ -41,16 +47,34 @@ def main() -> None:
         prop_entry,
         spinup=SpinUpConfig(dt_s=0.01, t_end_s=3.0),
     )
-    written = write_spinup_csv(OUTPUT_PATH, states)
+    csv_written = write_spinup_csv(CSV_PATH, states)
+    figure_written = plot_spinup_summary(
+        states,
+        FIGURE_PATH,
+        variant_label=VARIANT_LABEL,
+    )
+    frame_paths = export_spinup_frames(
+        states,
+        variant_config,
+        OUTPUT_DIR,
+        variant_label=VARIANT_LABEL,
+    )
+    validation = tubitak_validation_summary(states, variant_config)
 
     print(f"Config  : {DEFAULT_CONFIG_PATH}")
-    print(f"Variant : RT{ROOT_RATIO}_{TIP_RATIO} ({variant_config.id})")
-    print(f"Output  : {written}")
+    print(f"Variant : {VARIANT_LABEL} ({variant_config.id})")
+    print(f"CSV     : {csv_written}")
+    print(f"Figure  : {figure_written}")
+    print(f"Frames  : {len(frame_paths)} under {OUTPUT_DIR / 'frames' / VARIANT_LABEL}")
     print(f"Rows    : {len(states)}")
     print()
     print("Model assumptions:")
     for note in MODEL_ASSUMPTIONS:
         print(f"  - {note}")
+    print()
+    print("TÜBİTAK validation hooks:")
+    for line in validation.to_lines():
+        print(f"  - {line}")
     print()
     print("First 10 rows:")
     header = (
