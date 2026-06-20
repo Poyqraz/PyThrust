@@ -21,6 +21,7 @@ class FoldableGeometry:
     tip_segment_cg_from_hinge_m: float = 0.0
     stowed_envelope_diameter_m: float | None = None
     rotor_inertia_kgm2: float | None = None
+    stow_model: str = "legacy_cos"
 
 
 @dataclass(frozen=True)
@@ -35,6 +36,13 @@ class HingeConfig:
     hinge_stiffness_nm_per_rad: float = 0.008
     hinge_friction_nm: float = 0.0
     hinge_damping_nm_s_per_rad: float = 0.0
+    hinge_inertia_kgm2: float | None = None
+    hinge_coulomb_friction_nm: float = 0.0
+    hinge_breakaway_nm: float = 0.0
+    stop_margin_deg: float = 2.0
+    stop_stiffness_nm_per_rad: float = 0.0
+    aero_hinge_moment_gain: float = 0.0
+    tip_aero_lag_tau_s: float = 0.1
 
 
 @dataclass(frozen=True)
@@ -170,6 +178,7 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
                 if geometry_raw.get("rotor_inertia_kgm2") is not None
                 else None
             ),
+            stow_model=str(geometry_raw.get("stow_model", "legacy_cos")),
         ),
         hinge=HingeConfig(
             theta_min_deg=float(hinge_raw["theta_min_deg"]),
@@ -184,6 +193,21 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
             hinge_damping_nm_s_per_rad=float(
                 hinge_raw.get("hinge_damping_nm_s_per_rad", 0.0)
             ),
+            hinge_inertia_kgm2=(
+                float(hinge_raw["hinge_inertia_kgm2"])
+                if hinge_raw.get("hinge_inertia_kgm2") is not None
+                else None
+            ),
+            hinge_coulomb_friction_nm=float(
+                hinge_raw.get("hinge_coulomb_friction_nm", 0.0)
+            ),
+            hinge_breakaway_nm=float(hinge_raw.get("hinge_breakaway_nm", 0.0)),
+            stop_margin_deg=float(hinge_raw.get("stop_margin_deg", 2.0)),
+            stop_stiffness_nm_per_rad=float(
+                hinge_raw.get("stop_stiffness_nm_per_rad", 0.0)
+            ),
+            aero_hinge_moment_gain=float(hinge_raw.get("aero_hinge_moment_gain", 0.0)),
+            tip_aero_lag_tau_s=float(hinge_raw.get("tip_aero_lag_tau_s", 0.1)),
         ),
         kinematics=KinematicsConfig(
             model=str(kinematics_raw.get("model", "linear_saturation")),

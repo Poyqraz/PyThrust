@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import Protocol
 
+from .geometry_helpers import geometric_effective_diameter_m, tip_radial_extension_m
 from .models import FoldableGeometry, FoldablePropellerConfig
 
 
@@ -36,6 +37,13 @@ def effective_diameter_from_geometry(
     config dosyasında ``diameter_open_m = 2 * (hinge_position_m + tip_segment_length_m)``
     olacak şekilde tutulur.
     """
+    stow_model = getattr(geometry, "stow_model", "legacy_cos")
+    if stow_model == "parallel_fold":
+        return geometric_effective_diameter_m(
+            theta_deg,
+            geometry,
+            stow_model="parallel_fold",
+        )
     theta_rad = math.radians(theta_deg)
     effective_radius_m = geometry.hinge_position_m + geometry.tip_segment_length_m * math.cos(
         theta_rad
@@ -46,3 +54,12 @@ def effective_diameter_from_geometry(
 def effective_diameter_m(theta_deg: float, config: FoldablePropellerConfig) -> float:
     """Konfigürasyondan efektif çapı hesapla."""
     return effective_diameter_from_geometry(theta_deg, config.geometry)
+
+
+def tip_radial_extension_from_geometry(
+    theta_deg: float,
+    geometry: FoldableGeometry,
+) -> float:
+    """Tip radial extension for the configured stow model."""
+    stow_model = getattr(geometry, "stow_model", "legacy_cos")
+    return tip_radial_extension_m(theta_deg, geometry, stow_model=stow_model)  # type: ignore[arg-type]

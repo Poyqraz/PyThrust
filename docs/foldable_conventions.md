@@ -247,7 +247,41 @@ static/quasi-static foldable model.
 **Optional config fields:**
 
 - `geometry.rotor_inertia_kgm2` — override estimated rotor inertia
-- `hinge.hinge_damping_nm_s_per_rad` — reserved for future hinge ODE (0 in V1)
+- `hinge.hinge_damping_nm_s_per_rad` — viscous damping (V2 physics path; 0 in V1 motor spin-up)
+
+## Propeller-first physics (V2)
+
+Prescribed-RPM validation path under `pythrust/foldable/dynamics/` — **no motor module**.
+Use config `TIP_HINGED_250_V02.json` with parallel-stow geometry.
+
+**Angle convention (V02):**
+
+- `theta_deg = 0` — fully open (tip radial)
+- `theta_deg = -180` — parallel stow (tip aligned with root toward hub)
+- V01 `theta_min = -45°` retained for legacy motor spin-up (`legacy_cos` stow model)
+
+**Geometry outputs:**
+
+- `tip_radial_extension_m` — radial tip contribution beyond hinge
+- `geometric_effective_diameter_m` — `2 * (hinge_position + extension)`
+- `aerodynamic_effective_diameter_m` — root/tip blend with lagged tip effectiveness
+
+**Simulation modes:**
+
+| Mode | Entry point | RPM source | Hinge |
+|------|-------------|------------|-------|
+| Motor spin-up (legacy) | `run_spinup_simulation` | Motor ODE | Quasi-static |
+| Prescribed RPM (V2) | `run_prescribed_rpm_physics` | `PrescribedRpmConfig` | Second-order ODE |
+
+**Physics debug outputs** (`outputs/foldable/dynamics/physics/`):
+
+- CSV: `prescribed_rpm_7100_constant.csv`, `prescribed_rpm_ramp.csv`
+- Figures: hinge kinematics, moment components, split thrust, D_geo vs D_aero, phase portrait
+- Example: `examples/run_prescribed_rpm_physics.py`
+
+**Hinge ODE:** `J * theta_ddot = M_cent + M_aero - M_stiff - M_damp - M_fric - M_stop`
+
+**Thrust split:** `thrust_root_n` (active from start) + `thrust_tip_n` (angle/lagged eff)
 
 **Dynamic V1 notes:**
 
