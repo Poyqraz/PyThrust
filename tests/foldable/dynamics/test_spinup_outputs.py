@@ -71,6 +71,28 @@ def test_plot_spinup_summary_ramp_profile(rt75_spinup_states, tmp_path: Path) ->
     assert output.stat().st_size > 0
 
 
+def test_plot_spinup_summary_report_clean_writes_png(
+    rt75_spinup_states, tmp_path: Path
+) -> None:
+    variant, states = rt75_spinup_states
+    db = PropellerDatabase()
+    db.load(PROP_DB_PATH, strict=False)
+    prop_entry = db.get(variant.reference_propeller_id)
+    assert prop_entry is not None
+    checkpoint = spinup_checkpoint_summary(states, variant, prop_entry)
+    output = plot_spinup_summary(
+        states,
+        tmp_path / "spinup_RT75_25_ramp_report.png",
+        variant_label="RT75_25",
+        throttle_profile="linear_ramp",
+        ramp_time_s=0.5,
+        checkpoint=checkpoint,
+        report_clean=True,
+    )
+    assert output.is_file()
+    assert output.stat().st_size > 0
+
+
 def test_export_spinup_frames_writes_pngs(rt75_spinup_states, tmp_path: Path) -> None:
     variant, states = rt75_spinup_states
     written = export_spinup_frames(

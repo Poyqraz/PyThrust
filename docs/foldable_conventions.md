@@ -234,6 +234,10 @@ static/quasi-static foldable model.
 - `outputs/foldable/dynamics/figures/spinup_RT75_25_step.png` — 4-panel step summary
   (RPM, θ, thrust, D_eff vs time) with TÜBİTAK 7100 rpm annotations
 - `outputs/foldable/dynamics/figures/spinup_RT75_25_ramp.png` — 4-panel ramp summary
+- `outputs/foldable/dynamics/figures/spinup_RT75_25_step_report.png` — report-clean
+  step figure (checkpoint box in reserved margin)
+- `outputs/foldable/dynamics/figures/spinup_RT75_25_ramp_report.png` — **preferred
+  report figure** for startup visualization (linear ramp, `ramp_time_s=0.5`)
 - `outputs/foldable/dynamics/figures/spinup_RT75_25.png` — legacy alias of step figure
 - `outputs/foldable/dynamics/frames/RT75_25/` — rotating **single-arm concept frame**
   PNGs (step profile) + `manifest.json`
@@ -253,19 +257,21 @@ static/quasi-static foldable model.
   approximation); V1 approximation only, not a full folded-blade aero model.
 - Throttle `step` profile is an ideal command (instant full throttle after t=0).
 - Throttle `linear_ramp` profile is more realistic for startup visualization
-  (default `ramp_time_s=0.5` s).
+  (default `ramp_time_s=0.5` s). Use `spinup_RT75_25_ramp_report.png` in written
+  reports; keep step figures for ideal-command upper-bound comparison.
 - Checkpoint summary CSVs at 7100 rpm (per profile); legacy step alias kept.
-- Spin-up figures include input profile caption, V1 model notes, and TÜBİTAK
-  checkpoint lines at 7100 rpm (horizontal) and `time_to_7100_rpm` (vertical).
+- Legacy spin-up figures keep inline checkpoint annotations; `*_report.png` figures
+  reserve a right margin so subplot titles stay readable.
 - Dynamic frame export uses a **single-arm concept frame**: root + hinged tip segment
-  only; it does **not** yet represent a full two-blade rotor. Optional text overlay
-  shows θ, hinge state, D_eff, thrust, and input profile label.
+  only; it does **not** yet represent a full two-blade rotor or CAD geometry. Optional
+  text overlay shows θ, hinge state, D_eff, thrust, and input profile label.
 - `ideal_geometry_ratio_at_7100_rpm` = simulated thrust / reference open propeller
   thrust at 7100 rpm when the model is fully deployed; **not** experimental
   performance (assumes no profile/hinge/manufacturing loss once open).
-- `current_pretest_ratio` (0.70) and `project_target_ratio` (0.85) are TÜBİTAK
-  calibration/target references vs the same-diameter standard propeller; the V1
-  model does not automatically achieve them.
+- `current_pretest_ratio` (0.70) is the TÜBİTAK **pretest reference** vs the
+  same-diameter standard propeller; not an automatic V1 model result.
+- `project_target_ratio` (0.85) is the TÜBİTAK **project target**; future
+  BEM/CFD/experiment calibration required.
 - `current_calibrated_thrust_at_7100_rpm` and `target_thrust_at_7100_rpm` scale
   the reference thrust by those TÜBİTAK fractions for proposal alignment.
 

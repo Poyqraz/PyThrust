@@ -34,6 +34,8 @@ SUMMARY_RAMP_PATH = OUTPUT_DIR / "dynamic_spinup_summary_RT75_25_ramp.csv"
 SUMMARY_LEGACY_PATH = OUTPUT_DIR / "dynamic_spinup_summary_RT75_25.csv"
 FIGURE_STEP_PATH = OUTPUT_DIR / "figures" / "spinup_RT75_25_step.png"
 FIGURE_RAMP_PATH = OUTPUT_DIR / "figures" / "spinup_RT75_25_ramp.png"
+FIGURE_STEP_REPORT_PATH = OUTPUT_DIR / "figures" / "spinup_RT75_25_step_report.png"
+FIGURE_RAMP_REPORT_PATH = OUTPUT_DIR / "figures" / "spinup_RT75_25_ramp_report.png"
 FIGURE_LEGACY_PATH = OUTPUT_DIR / "figures" / "spinup_RT75_25.png"
 VARIANT_LABEL = "RT75_25"
 ROOT_RATIO = 75
@@ -136,6 +138,23 @@ def main() -> None:
         throttle_profile="step",
         checkpoint=step_checkpoint,
     )
+    figure_step_report = plot_spinup_summary(
+        step_states,
+        FIGURE_STEP_REPORT_PATH,
+        variant_label=VARIANT_LABEL,
+        throttle_profile="step",
+        checkpoint=step_checkpoint,
+        report_clean=True,
+    )
+    figure_ramp_report = plot_spinup_summary(
+        ramp_states,
+        FIGURE_RAMP_REPORT_PATH,
+        variant_label=VARIANT_LABEL,
+        throttle_profile="linear_ramp",
+        ramp_time_s=ramp_spinup.ramp_time_s,
+        checkpoint=ramp_checkpoint,
+        report_clean=True,
+    )
 
     step_frames = export_spinup_frames(
         step_states,
@@ -162,6 +181,7 @@ def main() -> None:
     print(f"Legacy  : {legacy_csv} (step profile, backward compatible)")
     print(f"Summary : step={summary_step}, ramp={summary_ramp}, legacy={summary_legacy}")
     print(f"Figures : step={figure_step}, ramp={figure_ramp}, legacy={figure_legacy}")
+    print(f"Report  : step={figure_step_report}, ramp={figure_ramp_report} (preferred: ramp)")
     print(f"Frames  : step={len(step_frames)} under {OUTPUT_DIR / 'frames' / VARIANT_LABEL}")
     print(
         f"          ramp={len(ramp_frames)} under "

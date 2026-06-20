@@ -26,7 +26,7 @@ from .dynamics_frame import (
     rotor_azimuth_rad,
     visual_state_from_dynamic,
 )
-from .figures import plot_spinup_summary
+from .figures import SPINUP_REPORT_FIGURE_NOTE, plot_spinup_summary
 from .frames import (
     SINGLE_ARM_CONCEPT_NOTE,
     export_spinup_frames,
@@ -53,6 +53,7 @@ __all__ = [
     "MODEL_ASSUMPTIONS",
     "SINGLE_ARM_CONCEPT_NOTE",
     "SPINUP_CSV_COLUMNS",
+    "SPINUP_REPORT_FIGURE_NOTE",
     "SPINUP_SUMMARY_CSV_COLUMNS",
     "TUBITAK_LIFT_REFERENCE_FRACTION",
     "TUBITAK_LIFT_TARGET_FRACTION",
