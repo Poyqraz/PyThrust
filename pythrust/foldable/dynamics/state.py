@@ -15,6 +15,8 @@ SPINUP_CSV_COLUMNS: tuple[str, ...] = (
     "rotor_azimuth_deg",
     "theta_deg",
     "theta_dot_deg_s",
+    "deployment_progress_01",
+    "aero_effectiveness",
     "effective_diameter_m",
     "opening_moment_nm",
     "resisting_moment_nm",
@@ -39,6 +41,8 @@ class DynamicState:
     rotor_azimuth_deg: float
     theta_deg: float
     theta_dot_deg_s: float
+    deployment_progress_01: float
+    aero_effectiveness: float
     effective_diameter_m: float
     opening_moment_nm: float
     resisting_moment_nm: float

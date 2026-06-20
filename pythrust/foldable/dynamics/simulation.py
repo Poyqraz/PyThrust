@@ -18,35 +18,63 @@ from ..kinematics import (
 )
 from ..models import FoldablePropellerConfig
 from .aero import quasi_steady_aero
+from .aero_effectiveness import (
+    FOLDED_MIN_AERO_EFFECTIVENESS,
+    aero_effectiveness_from_progress,
+    deployment_progress_from_theta,
+)
 from .hinge import quasi_static_theta_deg
 from .integrator import euler_step
 from .motor import algebraic_motor_current, applied_voltage_v, motor_torque_nm
 from .rotor import default_rotor_inertia_kgm2, rotor_acceleration_rad_s2
 from .state import SPINUP_CSV_COLUMNS, DynamicState
+from .throttle import ThrottleProfileName, throttle_at_time
 
 MODEL_ASSUMPTIONS: tuple[str, ...] = (
     "Algebraic motor current (no electrical inductance).",
     "Fixed rotor inertia from blade geometry estimate plus motor offset.",
-    "Quasi-static hinge: theta follows moment equilibrium at current RPM.",
+    "Quasi-static hinge: theta follows moment equilibrium at current RPM "
+    "(not a second-order hinge ODE).",
     "Quasi-steady aero at J=0; Ct/Cp from reference propeller database with D_eff.",
+    "Dynamic V1 aero_effectiveness scales thrust/torque by deployment progress "
+    f"(folded floor={FOLDED_MIN_AERO_EFFECTIVENESS:.2f}); folded overlap not fully modeled.",
+    "D_eff is aerodynamic effective diameter during deployment, not the 0.14 m "
+    "stowed_envelope_diameter_m storage target.",
     "Thrust and aero torque zero at omega=0.",
-    "Step throttle input; no ESC ramp model.",
+    "Throttle profile configurable: step (default) or linear_ramp with ramp_time_s.",
     "Static foldable model unchanged; additive dynamics layer only.",
 )
 
 
 @dataclass(frozen=True)
 class SpinUpConfig:
-    """Time-stepping parameters for V1 skeleton."""
+    """Time-stepping and throttle parameters for V1 skeleton."""
 
     dt_s: float = 0.01
     t_end_s: float = 3.0
     rho_kg_m3: float = 1.225
+    throttle_profile: ThrottleProfileName = "step"
+    ramp_time_s: float = 0.5
+
+
+def build_throttle_schedule(
+    spinup: SpinUpConfig,
+) -> Callable[[float], float]:
+    """Build a throttle schedule callable from spin-up config."""
+
+    def schedule(time_s: float) -> float:
+        return throttle_at_time(
+            time_s,
+            profile=spinup.throttle_profile,
+            ramp_time_s=spinup.ramp_time_s,
+        )
+
+    return schedule
 
 
 def default_throttle_schedule(time_s: float) -> float:
-    """Motor off at t=0; full throttle immediately after."""
-    return 1.0 if time_s > 0.0 else 0.0
+    """Backward-compatible step schedule: 0 at t=0, 1.0 after."""
+    return throttle_at_time(time_s, profile="step")
 
 
 def run_spinup_simulation(
@@ -58,7 +86,7 @@ def run_spinup_simulation(
 ) -> List[DynamicState]:
     """Integrate rotor spin-up with quasi-static hinge and quasi-steady aero."""
     params = spinup or SpinUpConfig()
-    schedule = throttle_schedule or default_throttle_schedule
+    schedule = throttle_schedule or build_throttle_schedule(params)
     rotor_inertia = default_rotor_inertia_kgm2(config)
 
     n_steps = int(round(params.t_end_s / params.dt_s))
@@ -75,6 +103,13 @@ def run_spinup_simulation(
         rpm = max(0.0, omega_rad_s * 30.0 / math.pi)
         theta_dot_deg_s = 0.0 if step_index == 0 else (theta_deg - theta_deg_prev) / params.dt_s
 
+        deployment_progress = deployment_progress_from_theta(
+            theta_deg,
+            theta_min_deg=config.hinge.theta_min_deg,
+            theta_max_deg=config.hinge.theta_max_deg,
+        )
+        aero_eff = aero_effectiveness_from_progress(deployment_progress)
+
         current_a = algebraic_motor_current(omega_rad_s, throttle, config)
         q_motor = motor_torque_nm(omega_rad_s, throttle, config)
         d_eff = effective_diameter_m(theta_deg, config)
@@ -83,6 +118,7 @@ def run_spinup_simulation(
             d_eff,
             prop_entry,
             rho=params.rho_kg_m3,
+            aero_effectiveness=aero_eff,
         )
         m_open = opening_moment_nm(rpm, config.geometry, config.hinge)
         m_resist = resisting_moment_nm(theta_deg, config.hinge)
@@ -105,6 +141,8 @@ def run_spinup_simulation(
                 rotor_azimuth_deg=round(math.degrees(psi_rad), 4),
                 theta_deg=round(theta_deg, 4),
                 theta_dot_deg_s=round(theta_dot_deg_s, 4),
+                deployment_progress_01=round(deployment_progress, 6),
+                aero_effectiveness=round(aero_eff, 6),
                 effective_diameter_m=round(d_eff, 6),
                 opening_moment_nm=round(m_open, 6),
                 resisting_moment_nm=round(m_resist, 6),

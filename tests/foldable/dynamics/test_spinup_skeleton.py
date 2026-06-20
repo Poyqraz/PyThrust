@@ -68,3 +68,39 @@ def test_csv_columns_exist(rt75_spinup_states, tmp_path: Path) -> None:
         assert reader.fieldnames == list(SPINUP_CSV_COLUMNS)
         rows = list(reader)
     assert len(rows) == len(rt75_spinup_states)
+
+
+def test_folded_row_has_reduced_aero_effectiveness(rt75_spinup_states) -> None:
+    folded_rows = [row for row in rt75_spinup_states if row.hinge_state == "folded" and row.rpm > 0.0]
+    assert folded_rows
+    assert all(row.aero_effectiveness < 1.0 for row in folded_rows)
+    assert folded_rows[0].deployment_progress_01 == pytest.approx(0.0)
+
+
+def test_linear_ramp_throttle_slower_than_step() -> None:
+    config = load_config(CONFIG_PATH)
+    variant = make_variant_config(config, 75, 25)
+    db = PropellerDatabase()
+    db.load(PROP_DB_PATH, strict=False)
+    prop_entry = db.get(variant.reference_propeller_id)
+    if prop_entry is None:
+        pytest.skip("Reference propeller not available in database")
+
+    step_states = run_spinup_simulation(
+        variant,
+        prop_entry,
+        spinup=SpinUpConfig(dt_s=0.01, t_end_s=0.2, throttle_profile="step"),
+    )
+    ramp_states = run_spinup_simulation(
+        variant,
+        prop_entry,
+        spinup=SpinUpConfig(
+            dt_s=0.01,
+            t_end_s=0.2,
+            throttle_profile="linear_ramp",
+            ramp_time_s=0.2,
+        ),
+    )
+    step_rpm_at_100ms = next(row for row in step_states if row.time_s == pytest.approx(0.1)).rpm
+    ramp_rpm_at_100ms = next(row for row in ramp_states if row.time_s == pytest.approx(0.1)).rpm
+    assert ramp_rpm_at_100ms < step_rpm_at_100ms

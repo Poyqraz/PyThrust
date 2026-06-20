@@ -232,6 +232,16 @@ static/quasi-static foldable model.
 - `geometry.rotor_inertia_kgm2` — override estimated rotor inertia
 - `hinge.hinge_damping_nm_s_per_rad` — reserved for future hinge ODE (0 in V1)
 
+**Dynamic V1 notes:**
+
+- `D_eff` = aerodynamic effective diameter during deployment; **not** the 0.14 m
+  `stowed_envelope_diameter_m` storage target.
+- `aero_effectiveness` scales thrust/torque by deployment progress (folded overlap
+  approximation); not a full folded-blade aero model.
+- Throttle profiles: `step` (default) or `linear_ramp` with `ramp_time_s`.
+- Checkpoint summary: `dynamic_spinup_summary_RT75_25.csv` at 7100 rpm vs reference
+  open propeller thrust (pretest ratio target 0.70, project goal 0.85).
+
 **TÜBİTAK reference hooks** (`dynamics/calibration.py`): 25 cm open diameter,
 14 cm stowed envelope, 7100 rpm pretest, 70% / 85% lift calibration targets
 (future BEM/CFD/experiment).
