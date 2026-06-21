@@ -12,6 +12,8 @@ from pythrust.foldable.dynamics import (  # noqa: E402
     resolve_foldable_evaluation_context,
     run_calibrated_thrust_split_diagnostic,
     run_deployment_bias_stiffness_sweep,
+    run_foldable_candidate_ranking_v2,
+    run_foldable_design_decision_matrix_v2,
     run_foldable_performance_summary_v2,
     run_open_latch_diagnostic_cases,
     run_thrust_split_model_comparison,
@@ -19,6 +21,8 @@ from pythrust.foldable.dynamics import (  # noqa: E402
     run_tip_thrust_latch_comparison,
     write_calibrated_thrust_split_diagnostic_csv,
     write_deployment_bias_stiffness_sweep_csv,
+    write_foldable_candidate_ranking_v2_csv,
+    write_foldable_design_decision_matrix_v2_csv,
     write_foldable_performance_summary_v2_csv,
     write_thrust_split_model_comparison_csv,
     write_tip_thrust_activation_csv,
@@ -59,6 +63,17 @@ def main() -> None:
         summary_rows,
     )
 
+    decision_rows = run_foldable_design_decision_matrix_v2(config, prop_entry)
+    ranking_rows = run_foldable_candidate_ranking_v2(decision_rows)
+    write_foldable_design_decision_matrix_v2_csv(
+        str(OUTPUT_DIR / "foldable_design_decision_matrix_v2.csv"),
+        decision_rows,
+    )
+    write_foldable_candidate_ranking_v2_csv(
+        str(OUTPUT_DIR / "foldable_candidate_ranking_v2.csv"),
+        ranking_rows,
+    )
+
     tip_rows = run_tip_thrust_activation_diagnostic(config, prop_entry)
     tip_latch_rows = run_tip_thrust_latch_comparison(config, prop_entry)
     write_tip_thrust_activation_csv(
@@ -83,6 +98,8 @@ def main() -> None:
     print(f"Deployment sweep : {len(sweep_rows)} cases, {len(meaningful)} meaningful")
     print(f"Open latch cases : {len(latch_rows)} cases, {len(open_stop)} open_stop")
     print(f"Performance v2   : {len(summary_rows)} rows")
+    print(f"Decision matrix  : {len(decision_rows)} rows")
+    print(f"Candidate rank   : {len(ranking_rows)} rows")
     print(f"Tip activation   : {len(tip_rows) + len(tip_latch_rows)} cases")
     print(f"Split comparison : {len(split_rows)} rows")
     print(f"Calibrated split : {len(calibrated_rows)} rows")
