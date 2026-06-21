@@ -19,7 +19,6 @@ Paths are relative to the repository root.
 | `outputs/foldable/figures/thrust_difference_percent_vs_throttle_by_variant.png` | Thrust difference vs fixed reference propeller | no | Normalized against APC reference; not calibrated pretest split. |
 | `outputs/foldable/figures/fig_thrust_difference_normalized_250mm.png` | Normalized thrust loss vs 250 mm reference | no | Summary metric for variant ranking, not final V2 motor checkpoint. |
 | `outputs/foldable/figures/flight_startup_scores_by_variant.png` | Variant decision support scores | no | Decision-support only; not experimental validation. |
-| `outputs/foldable/dynamics/figures/spinup_RT75_25_report.png` | Dynamic spin-up summary (RT75_25) | no | File not found on disk. V1 dynamic spin-up; RT75 geometry, not V02 latch checkpoint. |
 | `outputs/foldable/dynamics/figures/spinup_RT75_25_step_report.png` | Step-throttle spin-up report figure | no | Ideal step throttle; not interpolated 7100 rpm operating point. |
 | `outputs/foldable/dynamics/figures/spinup_RT75_25_ramp_report.png` | Ramp-throttle spin-up report figure | no | Transient model; coupling level differs from reference_load_postprocess. |
 
