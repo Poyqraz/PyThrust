@@ -9,11 +9,20 @@ import pytest
 
 from pythrust.foldable.dynamics.motor_coupled_performance import (
     MOTOR_COUPLED_7100RPM_CHECKPOINT_V2_COLUMNS,
+    MOTOR_COUPLED_7100RPM_INTERPOLATED_V2_COLUMNS,
     MOTOR_COUPLED_FOLDABLE_PERFORMANCE_V2_COLUMNS,
+    MOTOR_COUPLED_REFERENCE_CONSISTENCY_V2_COLUMNS,
+    DEFAULT_TARGET_CHECKPOINT_RPM,
+    interpolate_motor_scalars_at_target_rpm,
+    reference_25cm_at_rpm_n,
     run_motor_coupled_7100rpm_checkpoint_v2,
+    run_motor_coupled_7100rpm_interpolated_v2,
     run_motor_coupled_foldable_performance_v2,
+    run_motor_coupled_reference_consistency_v2,
     write_motor_coupled_7100rpm_checkpoint_v2_csv,
+    write_motor_coupled_7100rpm_interpolated_v2_csv,
     write_motor_coupled_foldable_performance_v2_csv,
+    write_motor_coupled_reference_consistency_v2_csv,
 )
 from pythrust.foldable.models import load_config
 from pythrust.propellers import PropellerDatabase
@@ -117,3 +126,134 @@ def test_7100_checkpoint_csv(v02_physics_setup, tmp_path: Path) -> None:
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         assert reader.fieldnames == list(MOTOR_COUPLED_7100RPM_CHECKPOINT_V2_COLUMNS)
+
+
+def test_interpolation_returns_row_at_7100(v02_physics_setup) -> None:
+    config, prop = v02_physics_setup
+    perf_rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.5, 0.7, 0.85, 1.0),
+    )
+    interp_rows = run_motor_coupled_7100rpm_interpolated_v2(
+        config, prop, perf_rows, t_end_s=0.3
+    )
+    assert len(interp_rows) == 5
+    latch = next(row for row in interp_rows if row.case_id == "latch_theta0")
+    assert latch.target_rpm == DEFAULT_TARGET_CHECKPOINT_RPM
+    assert latch.rpm == pytest.approx(DEFAULT_TARGET_CHECKPOINT_RPM, rel=1e-6)
+    assert "interpolation" in latch.interpolation_note.lower()
+
+
+def test_interpolated_throttle_between_070_and_100(v02_physics_setup) -> None:
+    config, prop = v02_physics_setup
+    perf_rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.5, 0.7, 0.85, 1.0),
+    )
+    interp_rows = run_motor_coupled_7100rpm_interpolated_v2(
+        config, prop, perf_rows, t_end_s=0.3
+    )
+    for row in interp_rows:
+        if row.case_id == "fixed_25cm_reference":
+            continue
+        assert 0.70 <= row.interpolated_throttle <= 1.00
+
+
+def test_current_rpm_reference_lower_than_checkpoint(v02_physics_setup) -> None:
+    config, prop = v02_physics_setup
+    rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        evaluation_cases=(("TIP_HINGED_250_V02", "latch_theta0", None),),
+        t_end_s=0.3,
+        throttle_values=(0.7,),
+    )
+    row = rows[0]
+    assert row.rpm < DEFAULT_TARGET_CHECKPOINT_RPM
+    assert (
+        row.reference_25cm_at_current_rpm_n
+        < row.reference_25cm_at_checkpoint_7100_n
+    )
+
+
+def test_ratio_to_current_differs_from_checkpoint_when_rpm_not_7100(
+    v02_physics_setup,
+) -> None:
+    config, prop = v02_physics_setup
+    rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        evaluation_cases=(("TIP_HINGED_250_RT65_35", "bias10_k0.25_s5", (65, 35)),),
+        t_end_s=0.3,
+        throttle_values=(0.7,),
+    )
+    row = rows[0]
+    assert abs(row.rpm - DEFAULT_TARGET_CHECKPOINT_RPM) > 100.0
+    assert row.ratio_to_current_25cm_pretest != pytest.approx(
+        row.ratio_to_checkpoint_25cm_pretest, rel=1e-3
+    )
+    assert row.ratio_to_current_25cm_pretest > row.ratio_to_checkpoint_25cm_pretest
+
+
+def test_reference_25cm_n2_scaling() -> None:
+    checkpoint = 9.10
+    rpm = 6547.0
+    scaled = reference_25cm_at_rpm_n(checkpoint, rpm, checkpoint_rpm=7100.0)
+    expected = checkpoint * (rpm / 7100.0) ** 2
+    assert scaled == pytest.approx(expected, rel=1e-6)
+    assert scaled < checkpoint
+
+
+def test_interpolated_and_consistency_csv(v02_physics_setup, tmp_path: Path) -> None:
+    config, prop = v02_physics_setup
+    perf_rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.5, 0.7, 0.85, 1.0),
+    )
+    interp_rows = run_motor_coupled_7100rpm_interpolated_v2(
+        config, prop, perf_rows, t_end_s=0.3
+    )
+    consistency_rows = run_motor_coupled_reference_consistency_v2(
+        perf_rows, interp_rows
+    )
+    interp_path = tmp_path / "motor_coupled_7100rpm_interpolated_v2.csv"
+    consistency_path = tmp_path / "motor_coupled_reference_consistency_v2.csv"
+    write_motor_coupled_7100rpm_interpolated_v2_csv(str(interp_path), interp_rows)
+    write_motor_coupled_reference_consistency_v2_csv(
+        str(consistency_path), consistency_rows
+    )
+    with interp_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == list(MOTOR_COUPLED_7100RPM_INTERPOLATED_V2_COLUMNS)
+    with consistency_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == list(MOTOR_COUPLED_REFERENCE_CONSISTENCY_V2_COLUMNS)
+    row_types = {row.row_type for row in consistency_rows}
+    assert "root_only_at_current_rpm" in row_types
+    assert "reference_25cm_at_checkpoint_7100" in row_types
+    assert "deployed_candidate_interpolated_at_7100" in row_types
+
+
+def test_performance_csv_has_reference_columns(v02_physics_setup, tmp_path: Path) -> None:
+    config, prop = v02_physics_setup
+    rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.7,),
+    )
+    path = tmp_path / "motor_coupled_foldable_performance_v2.csv"
+    write_motor_coupled_foldable_performance_v2_csv(str(path), rows)
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == list(MOTOR_COUPLED_FOLDABLE_PERFORMANCE_V2_COLUMNS)
+        first = next(reader)
+        assert "reference_25cm_at_checkpoint_7100_n" in first
+        assert "reference_basis_note" in first
+        assert first["reference_basis_note"]
