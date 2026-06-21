@@ -9,14 +9,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from pythrust.foldable.dynamics import (  # noqa: E402
+    resolve_foldable_evaluation_context,
     run_calibrated_thrust_split_diagnostic,
     run_deployment_bias_stiffness_sweep,
+    run_foldable_performance_summary_v2,
     run_open_latch_diagnostic_cases,
     run_thrust_split_model_comparison,
     run_tip_thrust_activation_diagnostic,
     run_tip_thrust_latch_comparison,
     write_calibrated_thrust_split_diagnostic_csv,
     write_deployment_bias_stiffness_sweep_csv,
+    write_foldable_performance_summary_v2_csv,
     write_thrust_split_model_comparison_csv,
     write_tip_thrust_activation_csv,
 )
@@ -35,11 +38,25 @@ def main() -> None:
     if prop_entry is None:
         raise SystemExit("Reference propeller not found.")
 
-    sweep_rows = run_deployment_bias_stiffness_sweep(config, prop_entry)
-    latch_rows = run_open_latch_diagnostic_cases(config, prop_entry)
+    eval_context = resolve_foldable_evaluation_context(config, prop_entry)
+
+    sweep_rows = run_deployment_bias_stiffness_sweep(
+        config, prop_entry, evaluation_context=eval_context
+    )
+    latch_rows = run_open_latch_diagnostic_cases(
+        config, prop_entry, evaluation_context=eval_context
+    )
     write_deployment_bias_stiffness_sweep_csv(
         str(OUTPUT_DIR / "deployment_bias_stiffness_sweep.csv"),
         [*sweep_rows, *latch_rows],
+    )
+
+    summary_rows = run_foldable_performance_summary_v2(
+        config, prop_entry, context=eval_context
+    )
+    write_foldable_performance_summary_v2_csv(
+        str(OUTPUT_DIR / "foldable_performance_summary_v2.csv"),
+        summary_rows,
     )
 
     tip_rows = run_tip_thrust_activation_diagnostic(config, prop_entry)
@@ -65,6 +82,7 @@ def main() -> None:
     open_stop = [r for r in [*sweep_rows, *latch_rows] if r.reaches_open_stop_flag]
     print(f"Deployment sweep : {len(sweep_rows)} cases, {len(meaningful)} meaningful")
     print(f"Open latch cases : {len(latch_rows)} cases, {len(open_stop)} open_stop")
+    print(f"Performance v2   : {len(summary_rows)} rows")
     print(f"Tip activation   : {len(tip_rows) + len(tip_latch_rows)} cases")
     print(f"Split comparison : {len(split_rows)} rows")
     print(f"Calibrated split : {len(calibrated_rows)} rows")

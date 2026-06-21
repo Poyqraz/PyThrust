@@ -49,11 +49,58 @@ def test_deployment_sweep_subset(v02_physics_setup, tmp_path: Path) -> None:
         t_end_s=0.3,
     )
     assert len(rows) == 8
+    row = rows[0]
+    assert row.T_total_ideal_delta_n == pytest.approx(
+        row.T_root_n + row.T_tip_ideal_delta_n, rel=1e-6
+    )
+    assert row.T_total_pretest_fixed_n == pytest.approx(
+        row.T_root_n + row.T_tip_pretest_fixed_n, rel=1e-6
+    )
     path = tmp_path / "deployment_bias_stiffness_sweep.csv"
     write_deployment_bias_stiffness_sweep_csv(str(path), rows)
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         assert reader.fieldnames == list(DEPLOYMENT_BIAS_STIFFNESS_SWEEP_COLUMNS)
+
+
+def test_foldable_performance_summary_v2(v02_physics_setup, tmp_path: Path) -> None:
+    from pythrust.foldable.dynamics import (
+        FOLDABLE_PERFORMANCE_SUMMARY_V2_COLUMNS,
+        run_foldable_performance_summary_v2,
+        write_foldable_performance_summary_v2_csv,
+    )
+
+    config, prop = v02_physics_setup
+    rows = run_foldable_performance_summary_v2(config, prop, t_end_s=0.3)
+    assert len(rows) == 14
+    labels = {row.decision_label for row in rows if row.decision_label}
+    assert "compact_root_baseline" in labels
+    assert "current_pretest_candidate" in labels
+    assert "target_candidate" in labels
+    path = tmp_path / "foldable_performance_summary_v2.csv"
+    write_foldable_performance_summary_v2_csv(str(path), rows)
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == list(FOLDABLE_PERFORMANCE_SUMMARY_V2_COLUMNS)
+
+
+def test_partial_deployment_pretest_below_latch(v02_physics_setup) -> None:
+    from pythrust.foldable.dynamics import run_foldable_performance_summary_v2
+
+    config, prop = v02_physics_setup
+    rows = run_foldable_performance_summary_v2(config, prop, t_end_s=0.3)
+    latch = next(
+        r
+        for r in rows
+        if r.case_id == "latch_theta0" and r.thrust_model_level == "pretest_70_fixed"
+    )
+    bias = next(
+        r
+        for r in rows
+        if r.case_id == "bias10_k0.25_s5" and r.thrust_model_level == "pretest_70_fixed"
+    )
+    assert bias.T_total_n < latch.T_total_n
+    assert bias.ratio_to_25cm_reference < latch.ratio_to_25cm_reference
 
 
 def test_open_latch_reaches_open_stop(v02_physics_setup) -> None:

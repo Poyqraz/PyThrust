@@ -10,6 +10,12 @@ from pythrust.propellers.database import PropellerEntry
 
 from .aero_effectiveness import deployment_progress_from_theta
 from ..models import FoldablePropellerConfig
+from .physics_foldable_performance import (
+    FoldableEvaluationContext,
+    FoldableThrustEvaluation,
+    evaluate_foldable_thrust_at_state,
+    resolve_foldable_evaluation_context,
+)
 from .physics_stability import analyze_physics_stability
 from .physics_simulation import run_prescribed_rpm_physics
 from .prescribed_rpm import PrescribedRpmConfig
@@ -36,6 +42,19 @@ DEPLOYMENT_BIAS_STIFFNESS_SWEEP_COLUMNS: tuple[str, ...] = (
     "reaches_meaningful_deployment_flag",
     "reaches_open_stop_flag",
     "open_latch_diagnostic",
+    "T_root_n",
+    "T_tip_ideal_delta_n",
+    "T_total_ideal_delta_n",
+    "T_tip_pretest_fixed_n",
+    "T_total_pretest_fixed_n",
+    "pretest_fixed_ratio_to_25cm",
+    "T_tip_target_fixed_n",
+    "T_total_target_fixed_n",
+    "target_fixed_ratio_to_25cm",
+    "gain_vs_root_pretest_percent",
+    "gain_vs_root_target_percent",
+    "loss_vs_25cm_pretest_percent",
+    "loss_vs_25cm_target_percent",
 )
 
 
@@ -58,6 +77,19 @@ class DeploymentSweepRow:
     reaches_meaningful_deployment_flag: bool
     reaches_open_stop_flag: bool
     open_latch_diagnostic: bool
+    T_root_n: float
+    T_tip_ideal_delta_n: float
+    T_total_ideal_delta_n: float
+    T_tip_pretest_fixed_n: float
+    T_total_pretest_fixed_n: float
+    pretest_fixed_ratio_to_25cm: float
+    T_tip_target_fixed_n: float
+    T_total_target_fixed_n: float
+    target_fixed_ratio_to_25cm: float
+    gain_vs_root_pretest_percent: float
+    gain_vs_root_target_percent: float
+    loss_vs_25cm_pretest_percent: float
+    loss_vs_25cm_target_percent: float
 
     def to_csv_row(self) -> dict[str, str | float | bool]:
         return {
@@ -78,6 +110,19 @@ class DeploymentSweepRow:
             "reaches_meaningful_deployment_flag": self.reaches_meaningful_deployment_flag,
             "reaches_open_stop_flag": self.reaches_open_stop_flag,
             "open_latch_diagnostic": self.open_latch_diagnostic,
+            "T_root_n": self.T_root_n,
+            "T_tip_ideal_delta_n": self.T_tip_ideal_delta_n,
+            "T_total_ideal_delta_n": self.T_total_ideal_delta_n,
+            "T_tip_pretest_fixed_n": self.T_tip_pretest_fixed_n,
+            "T_total_pretest_fixed_n": self.T_total_pretest_fixed_n,
+            "pretest_fixed_ratio_to_25cm": self.pretest_fixed_ratio_to_25cm,
+            "T_tip_target_fixed_n": self.T_tip_target_fixed_n,
+            "T_total_target_fixed_n": self.T_total_target_fixed_n,
+            "target_fixed_ratio_to_25cm": self.target_fixed_ratio_to_25cm,
+            "gain_vs_root_pretest_percent": self.gain_vs_root_pretest_percent,
+            "gain_vs_root_target_percent": self.gain_vs_root_target_percent,
+            "loss_vs_25cm_pretest_percent": self.loss_vs_25cm_pretest_percent,
+            "loss_vs_25cm_target_percent": self.loss_vs_25cm_target_percent,
         }
 
 
@@ -88,6 +133,21 @@ def _meaningful_deployment(
     return progress >= MEANINGFUL_DEPLOYMENT_PROGRESS or d_aero_m >= MEANINGFUL_D_AERO_M
 
 
+def _thrust_evaluation_fields(
+    *,
+    d_aero_m: float,
+    context: FoldableEvaluationContext,
+    prop_entry: PropellerEntry,
+    constant_rpm: float,
+) -> FoldableThrustEvaluation:
+    return evaluate_foldable_thrust_at_state(
+        d_aero=d_aero_m,
+        context=context,
+        prop_entry=prop_entry,
+        rpm=constant_rpm,
+    )
+
+
 def _run_sweep_case(
     base_config: FoldablePropellerConfig,
     prop_entry: PropellerEntry,
@@ -96,6 +156,7 @@ def _run_sweep_case(
     bias_deg: float,
     stiffness_multiplier: float,
     moment_scale: float,
+    evaluation_context: FoldableEvaluationContext,
     initial_stow_offset_deg: float = 0.0,
     open_latch_diagnostic: bool = False,
     dt_s: float = 0.001,
@@ -134,6 +195,12 @@ def _run_sweep_case(
         theta_max_deg=hinge.theta_max_deg,
     )
     tip_eff = geometric_tip_exposure_01(final.theta_deg, cfg)
+    thrust_eval = _thrust_evaluation_fields(
+        d_aero_m=final.aerodynamic_effective_diameter_m,
+        context=evaluation_context,
+        prop_entry=prop_entry,
+        constant_rpm=constant_rpm,
+    )
     return DeploymentSweepRow(
         case_id=case_id,
         bias_deg=bias_deg,
@@ -154,6 +221,19 @@ def _run_sweep_case(
         ),
         reaches_open_stop_flag=final.hinge_state == "open_stop",
         open_latch_diagnostic=open_latch_diagnostic,
+        T_root_n=thrust_eval.T_root_n,
+        T_tip_ideal_delta_n=thrust_eval.T_tip_ideal_delta_n,
+        T_total_ideal_delta_n=thrust_eval.T_total_ideal_delta_n,
+        T_tip_pretest_fixed_n=thrust_eval.T_tip_pretest_fixed_n,
+        T_total_pretest_fixed_n=thrust_eval.T_total_pretest_fixed_n,
+        pretest_fixed_ratio_to_25cm=thrust_eval.pretest_fixed_ratio_to_25cm,
+        T_tip_target_fixed_n=thrust_eval.T_tip_target_fixed_n,
+        T_total_target_fixed_n=thrust_eval.T_total_target_fixed_n,
+        target_fixed_ratio_to_25cm=thrust_eval.target_fixed_ratio_to_25cm,
+        gain_vs_root_pretest_percent=thrust_eval.gain_vs_root_pretest_percent,
+        gain_vs_root_target_percent=thrust_eval.gain_vs_root_target_percent,
+        loss_vs_25cm_pretest_percent=thrust_eval.loss_vs_25cm_pretest_percent,
+        loss_vs_25cm_target_percent=thrust_eval.loss_vs_25cm_target_percent,
     )
 
 
@@ -167,7 +247,15 @@ def run_deployment_bias_stiffness_sweep(
     dt_s: float = 0.001,
     t_end_s: float = 2.0,
     constant_rpm: float = 7100.0,
+    evaluation_context: FoldableEvaluationContext | None = None,
 ) -> list[DeploymentSweepRow]:
+    eval_context = evaluation_context or resolve_foldable_evaluation_context(
+        config,
+        prop_entry,
+        dt_s=dt_s,
+        t_end_s=t_end_s,
+        constant_rpm=constant_rpm,
+    )
     rows: list[DeploymentSweepRow] = []
     for bias in bias_values:
         for k_mult in stiffness_multipliers:
@@ -181,6 +269,7 @@ def run_deployment_bias_stiffness_sweep(
                         bias_deg=bias,
                         stiffness_multiplier=k_mult,
                         moment_scale=scale,
+                        evaluation_context=eval_context,
                         dt_s=dt_s,
                         t_end_s=t_end_s,
                         constant_rpm=constant_rpm,
@@ -196,6 +285,7 @@ def run_open_latch_diagnostic_cases(
     dt_s: float = 0.001,
     t_end_s: float = 2.0,
     constant_rpm: float = 7100.0,
+    evaluation_context: FoldableEvaluationContext | None = None,
 ) -> list[DeploymentSweepRow]:
     """Open-stop/latch diagnostic cases (optional mode, not default physics).
 
@@ -208,6 +298,13 @@ def run_open_latch_diagnostic_cases(
         ("latch_near_open_start", 10.0, 0.25, 3.0, 175.0, True),
         ("latch_capture_threshold", 0.0, 1.0, 1.0, 175.0, True),
     )
+    eval_context = evaluation_context or resolve_foldable_evaluation_context(
+        config,
+        prop_entry,
+        dt_s=dt_s,
+        t_end_s=t_end_s,
+        constant_rpm=constant_rpm,
+    )
     rows: list[DeploymentSweepRow] = []
     for case_id, bias, k_mult, scale, offset, latch in specs:
         rows.append(
@@ -218,6 +315,7 @@ def run_open_latch_diagnostic_cases(
                 bias_deg=bias,
                 stiffness_multiplier=k_mult,
                 moment_scale=scale,
+                evaluation_context=eval_context,
                 initial_stow_offset_deg=offset,
                 open_latch_diagnostic=latch,
                 dt_s=dt_s,
