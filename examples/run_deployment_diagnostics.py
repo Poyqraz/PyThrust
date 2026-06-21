@@ -32,6 +32,8 @@ from pythrust.foldable.dynamics import (  # noqa: E402
     write_motor_coupled_7100rpm_interpolated_v2_csv,
     write_motor_coupled_foldable_performance_v2_csv,
     write_motor_coupled_reference_consistency_v2_csv,
+    write_motor_coupled_consistency_audit_v2_csv,
+    run_motor_coupled_consistency_audit_v2,
     write_thrust_split_model_comparison_csv,
     write_tip_thrust_activation_csv,
 )
@@ -90,6 +92,9 @@ def main() -> None:
     motor_reference_rows = run_motor_coupled_reference_consistency_v2(
         motor_rows, motor_interpolated_rows
     )
+    motor_audit_rows = run_motor_coupled_consistency_audit_v2(
+        motor_rows, motor_interpolated_rows
+    )
     write_motor_coupled_foldable_performance_v2_csv(
         str(OUTPUT_DIR / "motor_coupled_foldable_performance_v2.csv"),
         motor_rows,
@@ -105,6 +110,10 @@ def main() -> None:
     write_motor_coupled_reference_consistency_v2_csv(
         str(OUTPUT_DIR / "motor_coupled_reference_consistency_v2.csv"),
         motor_reference_rows,
+    )
+    write_motor_coupled_consistency_audit_v2_csv(
+        str(OUTPUT_DIR / "motor_coupled_consistency_audit_v2.csv"),
+        motor_audit_rows,
     )
 
     tip_rows = run_tip_thrust_activation_diagnostic(config, prop_entry)

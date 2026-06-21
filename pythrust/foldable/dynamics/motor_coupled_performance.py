@@ -7,6 +7,23 @@ import math
 from dataclasses import dataclass, replace
 from typing import Literal, Sequence
 
+AeroTorqueBasis = Literal[
+    "pythrust_solver_reference",
+    "foldable_proxy",
+    "not_computed",
+]
+MotorCouplingLevel = Literal[
+    "reference_load_postprocess",
+    "foldable_load_proxy",
+    "fully_coupled_solver",
+]
+
+MOTOR_COUPLING_LEVEL: MotorCouplingLevel = "reference_load_postprocess"
+SOLVER_LOAD_NOTE = (
+    "RPM/current/power are from PyThrust reference propeller equilibrium; "
+    "foldable D_aero load is post-processed and not yet fed back into solver."
+)
+
 from pythrust.propellers.database import PropellerEntry
 
 from ..integration import solve_pythrust_operating_point
@@ -73,6 +90,17 @@ MOTOR_COUPLED_FOLDABLE_PERFORMANCE_V2_COLUMNS: tuple[str, ...] = (
     "ratio_to_checkpoint_25cm_pretest",
     "ratio_to_current_25cm_pretest",
     "reference_basis_note",
+    "aero_torque_basis",
+    "compact_root_20cm_thrust_n",
+    "variant_root_segment_thrust_n",
+    "gain_vs_compact_root_20cm_percent",
+    "gain_vs_variant_root_segment_percent",
+    "root_baseline_note",
+    "motor_torque_margin_nm",
+    "motor_torque_margin_percent",
+    "torque_margin_note",
+    "motor_coupling_level",
+    "solver_load_note",
 )
 
 MOTOR_COUPLED_7100RPM_INTERPOLATED_V2_COLUMNS: tuple[str, ...] = (
@@ -97,6 +125,25 @@ MOTOR_COUPLED_7100RPM_INTERPOLATED_V2_COLUMNS: tuple[str, ...] = (
     "gain_vs_root_current_rpm_percent",
     "motor_margin_note",
     "interpolation_note",
+    "aero_torque_basis",
+    "compact_root_20cm_thrust_n",
+    "variant_root_segment_thrust_n",
+    "gain_vs_compact_root_20cm_percent",
+    "gain_vs_variant_root_segment_percent",
+    "root_baseline_note",
+    "motor_torque_margin_nm",
+    "motor_torque_margin_percent",
+    "torque_margin_note",
+    "motor_coupling_level",
+    "solver_load_note",
+)
+
+MOTOR_COUPLED_CONSISTENCY_AUDIT_V2_COLUMNS: tuple[str, ...] = (
+    "check_id",
+    "status",
+    "value",
+    "expected_behavior",
+    "note",
 )
 
 MOTOR_COUPLED_REFERENCE_CONSISTENCY_V2_COLUMNS: tuple[str, ...] = (
@@ -105,6 +152,8 @@ MOTOR_COUPLED_REFERENCE_CONSISTENCY_V2_COLUMNS: tuple[str, ...] = (
     "thrust_n",
     "reference_basis",
     "interpretation_note",
+    "motor_coupling_level",
+    "solver_load_note",
 )
 
 MOTOR_COUPLED_7100RPM_CHECKPOINT_V2_COLUMNS: tuple[str, ...] = (
@@ -123,6 +172,9 @@ MOTOR_COUPLED_7100RPM_CHECKPOINT_V2_COLUMNS: tuple[str, ...] = (
     "ratio25_pretest",
     "ratio25_target",
     "motor_margin_note",
+    "aero_torque_basis",
+    "motor_coupling_level",
+    "solver_load_note",
 )
 
 CaseVariantBinding = tuple[str, str, tuple[int, int] | None]
@@ -156,7 +208,7 @@ class MotorCoupledPerformanceRow:
     motor_current_a: float
     battery_power_w: float
     motor_torque_nm: float
-    aero_torque_nm: float
+    aero_torque_nm: float | None
     system_efficiency: float
     theta_final_deg: float
     D_aero_m: float
@@ -178,6 +230,17 @@ class MotorCoupledPerformanceRow:
     ratio_to_checkpoint_25cm_pretest: float
     ratio_to_current_25cm_pretest: float
     reference_basis_note: str
+    aero_torque_basis: AeroTorqueBasis
+    compact_root_20cm_thrust_n: float
+    variant_root_segment_thrust_n: float
+    gain_vs_compact_root_20cm_percent: float
+    gain_vs_variant_root_segment_percent: float
+    root_baseline_note: str
+    motor_torque_margin_nm: float | None
+    motor_torque_margin_percent: float | None
+    torque_margin_note: str
+    motor_coupling_level: MotorCouplingLevel
+    solver_load_note: str
 
     def to_csv_row(self) -> dict[str, str | float | bool]:
         return {
@@ -190,7 +253,7 @@ class MotorCoupledPerformanceRow:
             "motor_current_a": self.motor_current_a,
             "battery_power_w": self.battery_power_w,
             "motor_torque_nm": self.motor_torque_nm,
-            "aero_torque_nm": self.aero_torque_nm,
+            "aero_torque_nm": _csv_aero_torque(self.aero_torque_nm, self.aero_torque_basis),
             "system_efficiency": self.system_efficiency,
             "theta_final_deg": self.theta_final_deg,
             "D_aero_m": self.D_aero_m,
@@ -214,7 +277,44 @@ class MotorCoupledPerformanceRow:
             "ratio_to_checkpoint_25cm_pretest": self.ratio_to_checkpoint_25cm_pretest,
             "ratio_to_current_25cm_pretest": self.ratio_to_current_25cm_pretest,
             "reference_basis_note": self.reference_basis_note,
+            "aero_torque_basis": self.aero_torque_basis,
+            "compact_root_20cm_thrust_n": self.compact_root_20cm_thrust_n,
+            "variant_root_segment_thrust_n": self.variant_root_segment_thrust_n,
+            "gain_vs_compact_root_20cm_percent": self.gain_vs_compact_root_20cm_percent,
+            "gain_vs_variant_root_segment_percent": (
+                self.gain_vs_variant_root_segment_percent
+            ),
+            "root_baseline_note": self.root_baseline_note,
+            "motor_torque_margin_nm": _csv_optional_float(self.motor_torque_margin_nm),
+            "motor_torque_margin_percent": _csv_optional_float(
+                self.motor_torque_margin_percent
+            ),
+            "torque_margin_note": self.torque_margin_note,
+            "motor_coupling_level": self.motor_coupling_level,
+            "solver_load_note": self.solver_load_note,
         }
+
+
+@dataclass(frozen=True)
+class AeroTorqueEvaluation:
+    aero_torque_nm: float | None
+    basis: AeroTorqueBasis
+
+
+@dataclass(frozen=True)
+class RootBaselineEvaluation:
+    compact_root_20cm_thrust_n: float
+    variant_root_segment_thrust_n: float
+    gain_vs_compact_root_20cm_percent: float
+    gain_vs_variant_root_segment_percent: float
+    root_baseline_note: str
+
+
+@dataclass(frozen=True)
+class TorqueMarginEvaluation:
+    motor_torque_margin_nm: float | None
+    motor_torque_margin_percent: float | None
+    torque_margin_note: str
 
 
 @dataclass(frozen=True)
@@ -225,7 +325,7 @@ class InterpolatedMotorScalars:
     motor_current_a: float
     battery_power_w: float
     motor_torque_nm: float
-    aero_torque_nm: float
+    aero_torque_nm: float | None
     system_efficiency: float
     interpolation_note: str
 
@@ -240,7 +340,7 @@ class MotorCoupled7100InterpolatedRow:
     current_a: float
     power_w: float
     motor_torque_nm: float
-    aero_torque_nm: float
+    aero_torque_nm: float | None
     theta_final_deg: float
     D_aero_m: float
     T_root_n: float
@@ -253,6 +353,17 @@ class MotorCoupled7100InterpolatedRow:
     gain_vs_root_current_rpm_percent: float
     motor_margin_note: str
     interpolation_note: str
+    aero_torque_basis: AeroTorqueBasis
+    compact_root_20cm_thrust_n: float
+    variant_root_segment_thrust_n: float
+    gain_vs_compact_root_20cm_percent: float
+    gain_vs_variant_root_segment_percent: float
+    root_baseline_note: str
+    motor_torque_margin_nm: float | None
+    motor_torque_margin_percent: float | None
+    torque_margin_note: str
+    motor_coupling_level: MotorCouplingLevel
+    solver_load_note: str
 
     def to_csv_row(self) -> dict[str, str | float]:
         return {
@@ -264,7 +375,7 @@ class MotorCoupled7100InterpolatedRow:
             "current_a": self.current_a,
             "power_w": self.power_w,
             "motor_torque_nm": self.motor_torque_nm,
-            "aero_torque_nm": self.aero_torque_nm,
+            "aero_torque_nm": _csv_aero_torque(self.aero_torque_nm, self.aero_torque_basis),
             "theta_final_deg": self.theta_final_deg,
             "D_aero_m": self.D_aero_m,
             "T_root_n": self.T_root_n,
@@ -279,6 +390,21 @@ class MotorCoupled7100InterpolatedRow:
             "gain_vs_root_current_rpm_percent": self.gain_vs_root_current_rpm_percent,
             "motor_margin_note": self.motor_margin_note,
             "interpolation_note": self.interpolation_note,
+            "aero_torque_basis": self.aero_torque_basis,
+            "compact_root_20cm_thrust_n": self.compact_root_20cm_thrust_n,
+            "variant_root_segment_thrust_n": self.variant_root_segment_thrust_n,
+            "gain_vs_compact_root_20cm_percent": self.gain_vs_compact_root_20cm_percent,
+            "gain_vs_variant_root_segment_percent": (
+                self.gain_vs_variant_root_segment_percent
+            ),
+            "root_baseline_note": self.root_baseline_note,
+            "motor_torque_margin_nm": _csv_optional_float(self.motor_torque_margin_nm),
+            "motor_torque_margin_percent": _csv_optional_float(
+                self.motor_torque_margin_percent
+            ),
+            "torque_margin_note": self.torque_margin_note,
+            "motor_coupling_level": self.motor_coupling_level,
+            "solver_load_note": self.solver_load_note,
         }
 
 
@@ -289,6 +415,8 @@ class MotorCoupledReferenceConsistencyRow:
     thrust_n: float
     reference_basis: str
     interpretation_note: str
+    motor_coupling_level: MotorCouplingLevel
+    solver_load_note: str
 
     def to_csv_row(self) -> dict[str, str | float]:
         return {
@@ -297,6 +425,26 @@ class MotorCoupledReferenceConsistencyRow:
             "thrust_n": self.thrust_n,
             "reference_basis": self.reference_basis,
             "interpretation_note": self.interpretation_note,
+            "motor_coupling_level": self.motor_coupling_level,
+            "solver_load_note": self.solver_load_note,
+        }
+
+
+@dataclass(frozen=True)
+class MotorCoupledConsistencyAuditRow:
+    check_id: str
+    status: str
+    value: str
+    expected_behavior: str
+    note: str
+
+    def to_csv_row(self) -> dict[str, str]:
+        return {
+            "check_id": self.check_id,
+            "status": self.status,
+            "value": self.value,
+            "expected_behavior": self.expected_behavior,
+            "note": self.note,
         }
 
 
@@ -309,7 +457,7 @@ class MotorCoupled7100CheckpointRow:
     current_a: float
     power_w: float
     motor_torque_nm: float
-    aero_torque_nm: float
+    aero_torque_nm: float | None
     theta_final_deg: float
     D_aero_m: float
     T_pretest_n: float
@@ -317,6 +465,9 @@ class MotorCoupled7100CheckpointRow:
     ratio25_pretest: float
     ratio25_target: float
     motor_margin_note: str
+    aero_torque_basis: AeroTorqueBasis
+    motor_coupling_level: MotorCouplingLevel
+    solver_load_note: str
 
     def to_csv_row(self) -> dict[str, str | float]:
         return {
@@ -327,7 +478,7 @@ class MotorCoupled7100CheckpointRow:
             "current_a": self.current_a,
             "power_w": self.power_w,
             "motor_torque_nm": self.motor_torque_nm,
-            "aero_torque_nm": self.aero_torque_nm,
+            "aero_torque_nm": _csv_aero_torque(self.aero_torque_nm, self.aero_torque_basis),
             "theta_final_deg": self.theta_final_deg,
             "D_aero_m": self.D_aero_m,
             "T_pretest_n": self.T_pretest_n,
@@ -335,7 +486,28 @@ class MotorCoupled7100CheckpointRow:
             "ratio25_pretest": self.ratio25_pretest,
             "ratio25_target": self.ratio25_target,
             "motor_margin_note": self.motor_margin_note,
+            "aero_torque_basis": self.aero_torque_basis,
+            "motor_coupling_level": self.motor_coupling_level,
+            "solver_load_note": self.solver_load_note,
         }
+
+
+def _csv_optional_float(value: float | None) -> str | float:
+    if value is None:
+        return ""
+    return value
+
+
+def _csv_aero_torque(value: float | None, basis: AeroTorqueBasis) -> str | float:
+    if basis == "not_computed" or value is None:
+        return ""
+    return value
+
+
+def _percent_gain(value: float, baseline: float) -> float:
+    if baseline <= 0.0:
+        return 0.0
+    return 100.0 * (value - baseline) / baseline
 
 
 def resolve_variant_config(
@@ -438,6 +610,108 @@ def _reference_basis_note(
     return (
         "reference_25cm_at_current_rpm_n is n²-scaled proxy from checkpoint; "
         "not experimental data"
+    )
+
+
+def _aero_effectiveness_for_torque(
+    case_id: str,
+    tip_aero_effectiveness: float,
+) -> float:
+    if case_id in ("root_only_20cm", "fixed_25cm_reference"):
+        return 1.0
+    return max(0.0, min(1.0, tip_aero_effectiveness))
+
+
+def compute_foldable_aero_torque(
+    *,
+    omega_rad_s: float,
+    d_aero_m: float,
+    prop_entry: PropellerEntry,
+    case_id: str,
+    tip_aero_effectiveness: float,
+    rho: float = 1.225,
+) -> AeroTorqueEvaluation:
+    """Post-processed foldable aero torque at D_aero (not solver equilibrium load)."""
+    if omega_rad_s <= 0.0 or d_aero_m <= 0.0:
+        return AeroTorqueEvaluation(aero_torque_nm=None, basis="not_computed")
+    effectiveness = _aero_effectiveness_for_torque(case_id, tip_aero_effectiveness)
+    _thrust, torque_nm, _power = quasi_steady_aero(
+        omega_rad_s,
+        d_aero_m,
+        prop_entry,
+        rho=rho,
+        aero_effectiveness=effectiveness,
+    )
+    return AeroTorqueEvaluation(aero_torque_nm=torque_nm, basis="foldable_proxy")
+
+
+def compute_torque_margin(
+    motor_torque_nm: float,
+    aero: AeroTorqueEvaluation,
+) -> TorqueMarginEvaluation:
+    if aero.basis == "not_computed" or aero.aero_torque_nm is None:
+        return TorqueMarginEvaluation(
+            motor_torque_margin_nm=None,
+            motor_torque_margin_percent=None,
+            torque_margin_note="not_computed",
+        )
+    margin_nm = motor_torque_nm - aero.aero_torque_nm
+    if motor_torque_nm > 0.0:
+        margin_percent = 100.0 * margin_nm / motor_torque_nm
+        note = (
+            f"margin={margin_nm:.4f} Nm ({margin_percent:.1f}% of motor torque)"
+        )
+    else:
+        margin_percent = None
+        note = "motor torque zero; margin undefined"
+    return TorqueMarginEvaluation(
+        motor_torque_margin_nm=margin_nm,
+        motor_torque_margin_percent=margin_percent,
+        torque_margin_note=note,
+    )
+
+
+def resolve_root_baselines(
+    *,
+    t_total_pretest: float,
+    rpm: float,
+    eval_context: FoldableEvaluationContext,
+    compact_eval_context: FoldableEvaluationContext,
+    prop_entry: PropellerEntry,
+    rho: float = 1.225,
+) -> RootBaselineEvaluation:
+    compact_root = evaluate_foldable_thrust_at_state(
+        d_aero=compact_eval_context.d_root_m,
+        context=compact_eval_context,
+        prop_entry=prop_entry,
+        rpm=rpm,
+        rho=rho,
+    ).T_total_pretest_fixed_n
+    variant_root = evaluate_foldable_thrust_at_state(
+        d_aero=eval_context.d_root_m,
+        context=eval_context,
+        prop_entry=prop_entry,
+        rpm=rpm,
+        rho=rho,
+    ).T_total_pretest_fixed_n
+    gain_compact = _percent_gain(t_total_pretest, compact_root)
+    gain_variant = _percent_gain(t_total_pretest, variant_root)
+    if abs(compact_eval_context.d_root_m - eval_context.d_root_m) < 1e-6:
+        note = (
+            "compact_root_20cm is TÜBİTAK baseline; variant_root_segment matches "
+            "compact for V02 geometry"
+        )
+    else:
+        note = (
+            "compact_root_20cm is TÜBİTAK baseline; variant_root_segment is "
+            "internal geometry diagnostic only"
+        )
+    return RootBaselineEvaluation(
+        compact_root_20cm_thrust_n=compact_root,
+        variant_root_segment_thrust_n=variant_root,
+        gain_vs_compact_root_20cm_percent=gain_compact,
+        gain_vs_variant_root_segment_percent=gain_variant,
+        root_baseline_note=note,
     )
 
 
@@ -596,6 +870,7 @@ def evaluate_motor_coupled_case_at_throttle(
     config: FoldablePropellerConfig,
     prop_entry: PropellerEntry,
     eval_context: FoldableEvaluationContext,
+    compact_eval_context: FoldableEvaluationContext,
     theta_final_deg: float,
     d_aero_m: float,
     throttle: float,
@@ -638,6 +913,16 @@ def evaluate_motor_coupled_case_at_throttle(
             ratio_current,
             basis_note,
         ) = _reference_fields(0.0, 0.0, case=case_id)
+        idle_aero = AeroTorqueEvaluation(aero_torque_nm=None, basis="not_computed")
+        idle_margin = compute_torque_margin(0.0, idle_aero)
+        idle_baselines = resolve_root_baselines(
+            t_total_pretest=0.0,
+            rpm=0.0,
+            eval_context=eval_context,
+            compact_eval_context=compact_eval_context,
+            prop_entry=prop_entry,
+            rho=rho,
+        )
         return MotorCoupledPerformanceRow(
             variant_id=variant_id,
             case_id=case_id,
@@ -648,7 +933,7 @@ def evaluate_motor_coupled_case_at_throttle(
             motor_current_a=0.0,
             battery_power_w=0.0,
             motor_torque_nm=0.0,
-            aero_torque_nm=0.0,
+            aero_torque_nm=None,
             system_efficiency=0.0,
             theta_final_deg=theta_final_deg,
             D_aero_m=d_aero_m,
@@ -670,6 +955,17 @@ def evaluate_motor_coupled_case_at_throttle(
             ratio_to_checkpoint_25cm_pretest=ratio_checkpoint,
             ratio_to_current_25cm_pretest=ratio_current,
             reference_basis_note=basis_note,
+            aero_torque_basis=idle_aero.basis,
+            compact_root_20cm_thrust_n=idle_baselines.compact_root_20cm_thrust_n,
+            variant_root_segment_thrust_n=idle_baselines.variant_root_segment_thrust_n,
+            gain_vs_compact_root_20cm_percent=0.0,
+            gain_vs_variant_root_segment_percent=0.0,
+            root_baseline_note=idle_baselines.root_baseline_note,
+            motor_torque_margin_nm=idle_margin.motor_torque_margin_nm,
+            motor_torque_margin_percent=idle_margin.motor_torque_margin_percent,
+            torque_margin_note=idle_margin.torque_margin_note,
+            motor_coupling_level=MOTOR_COUPLING_LEVEL,
+            solver_load_note=SOLVER_LOAD_NOTE,
         )
 
     operating_point = solve_pythrust_operating_point(
@@ -677,14 +973,16 @@ def evaluate_motor_coupled_case_at_throttle(
     )
     rpm = max(0.0, operating_point.rpm)
     omega = rpm * math.pi / 30.0
-    eff = max(0.0, min(1.0, tip_aero_effectiveness))
-    _, aero_torque_nm, _ = quasi_steady_aero(
-        omega,
-        d_aero_m,
-        prop_entry,
+    aero_eval = compute_foldable_aero_torque(
+        omega_rad_s=omega,
+        d_aero_m=d_aero_m,
+        prop_entry=prop_entry,
+        case_id=case_id,
+        tip_aero_effectiveness=tip_aero_effectiveness,
         rho=rho,
-        aero_effectiveness=eff,
     )
+    aero_torque_nm = aero_eval.aero_torque_nm
+    torque_margin = compute_torque_margin(operating_point.torque_nm, aero_eval)
 
     thrust = evaluate_foldable_thrust_at_state(
         d_aero=d_aero_m,
@@ -708,6 +1006,15 @@ def evaluate_motor_coupled_case_at_throttle(
         case=case_id,
     )
 
+    root_baselines = resolve_root_baselines(
+        t_total_pretest=thrust.T_total_pretest_fixed_n,
+        rpm=rpm,
+        eval_context=eval_context,
+        compact_eval_context=compact_eval_context,
+        prop_entry=prop_entry,
+        rho=rho,
+    )
+
     reaches_7100 = rpm >= target_checkpoint_rpm - RPM_AT_CHECKPOINT_TOLERANCE
     note_parts = [
         f"PyThrust equilibrium @ {prop_entry.diameter_m:.3f} m reference load",
@@ -718,7 +1025,11 @@ def evaluate_motor_coupled_case_at_throttle(
         note_parts.append(
             f"full throttle RPM {rpm:.0f} below {target_checkpoint_rpm:.0f} checkpoint"
         )
-    if aero_torque_nm > operating_point.torque_nm * 1.05 and rpm > 0.0:
+    if (
+        aero_torque_nm is not None
+        and aero_torque_nm > operating_point.torque_nm * 1.05
+        and rpm > 0.0
+    ):
         note_parts.append(
             "foldable D_aero load exceeds solver reference torque at this RPM"
         )
@@ -759,6 +1070,19 @@ def evaluate_motor_coupled_case_at_throttle(
         ratio_to_checkpoint_25cm_pretest=ratio_checkpoint,
         ratio_to_current_25cm_pretest=ratio_current,
         reference_basis_note=basis_note,
+        aero_torque_basis=aero_eval.basis,
+        compact_root_20cm_thrust_n=root_baselines.compact_root_20cm_thrust_n,
+        variant_root_segment_thrust_n=root_baselines.variant_root_segment_thrust_n,
+        gain_vs_compact_root_20cm_percent=root_baselines.gain_vs_compact_root_20cm_percent,
+        gain_vs_variant_root_segment_percent=(
+            root_baselines.gain_vs_variant_root_segment_percent
+        ),
+        root_baseline_note=root_baselines.root_baseline_note,
+        motor_torque_margin_nm=torque_margin.motor_torque_margin_nm,
+        motor_torque_margin_percent=torque_margin.motor_torque_margin_percent,
+        torque_margin_note=torque_margin.torque_margin_note,
+        motor_coupling_level=MOTOR_COUPLING_LEVEL,
+        solver_load_note=SOLVER_LOAD_NOTE,
     )
 
 
@@ -778,6 +1102,14 @@ def run_motor_coupled_foldable_performance_v2(
 ) -> list[MotorCoupledPerformanceRow]:
     """Sweep throttle for selected variant/case bindings with calibrated thrust."""
     rows: list[MotorCoupledPerformanceRow] = []
+    compact_eval_context = resolve_foldable_evaluation_context(
+        apply_calibration_settings(base_config),
+        prop_entry,
+        dt_s=dt_s,
+        t_end_s=t_end_s,
+        constant_rpm=constant_rpm,
+        rho=rho,
+    )
 
     for variant_id, case_id, ratio in evaluation_cases:
         config = apply_calibration_settings(
@@ -823,6 +1155,7 @@ def run_motor_coupled_foldable_performance_v2(
                     config=config,
                     prop_entry=prop_entry,
                     eval_context=eval_context,
+                    compact_eval_context=compact_eval_context,
                     theta_final_deg=theta,
                     d_aero_m=d_aero,
                     throttle=throttle,
@@ -893,6 +1226,9 @@ def run_motor_coupled_7100rpm_checkpoint_v2(
                 ratio25_pretest=selected.ratio_to_25cm_pretest,
                 ratio25_target=selected.ratio_to_25cm_target,
                 motor_margin_note=margin_note,
+                aero_torque_basis=selected.aero_torque_basis,
+                motor_coupling_level=selected.motor_coupling_level,
+                solver_load_note=selected.solver_load_note,
             )
         )
     return checkpoints
@@ -915,6 +1251,14 @@ def run_motor_coupled_7100rpm_interpolated_v2(
     """Interpolate motor scalars at target rpm and evaluate thrust at that rpm."""
     rows: list[MotorCoupled7100InterpolatedRow] = []
     keys = {(row.variant_id, row.case_id) for row in performance_rows}
+    compact_eval_context = resolve_foldable_evaluation_context(
+        apply_calibration_settings(base_config),
+        prop_entry,
+        dt_s=dt_s,
+        t_end_s=t_end_s,
+        constant_rpm=constant_rpm,
+        rho=rho,
+    )
 
     for variant_id, case_id, ratio in evaluation_cases:
         if (variant_id, case_id) not in keys:
@@ -946,6 +1290,14 @@ def run_motor_coupled_7100rpm_interpolated_v2(
             t_end_s=t_end_s,
             rho=rho,
         )
+        tip_eff = _tip_effectiveness_from_theta(
+            config,
+            prop_entry,
+            case_id,
+            dt_s=dt_s,
+            t_end_s=t_end_s,
+            constant_rpm=constant_rpm,
+        )
 
         case_rows = [
             row
@@ -972,18 +1324,28 @@ def run_motor_coupled_7100rpm_interpolated_v2(
             checkpoint_rpm=constant_rpm,
         )
         t_pretest = thrust.T_total_pretest_fixed_n
-        root_only = evaluate_foldable_thrust_at_state(
-            d_aero=eval_context.d_root_m,
-            context=eval_context,
-            prop_entry=prop_entry,
+        root_baselines = resolve_root_baselines(
+            t_total_pretest=t_pretest,
             rpm=target_rpm,
+            eval_context=eval_context,
+            compact_eval_context=compact_eval_context,
+            prop_entry=prop_entry,
             rho=rho,
         )
-        gain = (
-            100.0 * (t_pretest - root_only.T_total_pretest_fixed_n)
-            / root_only.T_total_pretest_fixed_n
-            if root_only.T_total_pretest_fixed_n > 0.0
-            else 0.0
+        gain = root_baselines.gain_vs_variant_root_segment_percent
+
+        omega = target_rpm * math.pi / 30.0
+        aero_eval = compute_foldable_aero_torque(
+            omega_rad_s=omega,
+            d_aero_m=d_aero,
+            prop_entry=prop_entry,
+            case_id=case_id,
+            tip_aero_effectiveness=tip_eff,
+            rho=rho,
+        )
+        torque_margin = compute_torque_margin(
+            interpolated.motor_torque_nm,
+            aero_eval,
         )
 
         max_rpm = max(row.rpm for row in positive) if positive else 0.0
@@ -1016,7 +1378,7 @@ def run_motor_coupled_7100rpm_interpolated_v2(
                 current_a=interpolated.motor_current_a,
                 power_w=interpolated.battery_power_w,
                 motor_torque_nm=interpolated.motor_torque_nm,
-                aero_torque_nm=interpolated.aero_torque_nm,
+                aero_torque_nm=aero_eval.aero_torque_nm,
                 theta_final_deg=theta,
                 D_aero_m=d_aero,
                 T_root_n=thrust.T_root_n,
@@ -1033,6 +1395,21 @@ def run_motor_coupled_7100rpm_interpolated_v2(
                 gain_vs_root_current_rpm_percent=gain,
                 motor_margin_note=margin_note,
                 interpolation_note=interpolated.interpolation_note,
+                aero_torque_basis=aero_eval.basis,
+                compact_root_20cm_thrust_n=root_baselines.compact_root_20cm_thrust_n,
+                variant_root_segment_thrust_n=root_baselines.variant_root_segment_thrust_n,
+                gain_vs_compact_root_20cm_percent=(
+                    root_baselines.gain_vs_compact_root_20cm_percent
+                ),
+                gain_vs_variant_root_segment_percent=(
+                    root_baselines.gain_vs_variant_root_segment_percent
+                ),
+                root_baseline_note=root_baselines.root_baseline_note,
+                motor_torque_margin_nm=torque_margin.motor_torque_margin_nm,
+                motor_torque_margin_percent=torque_margin.motor_torque_margin_percent,
+                torque_margin_note=torque_margin.torque_margin_note,
+                motor_coupling_level=MOTOR_COUPLING_LEVEL,
+                solver_load_note=SOLVER_LOAD_NOTE,
             )
         )
     return rows
@@ -1097,6 +1474,8 @@ def run_motor_coupled_reference_consistency_v2(
                     "Root-only baseline at motor equilibrium rpm (~6547), "
                     "not checkpoint 7100"
                 ),
+                motor_coupling_level=MOTOR_COUPLING_LEVEL,
+                solver_load_note=SOLVER_LOAD_NOTE,
             )
         )
     if deployed_row is not None:
@@ -1110,6 +1489,8 @@ def run_motor_coupled_reference_consistency_v2(
                     "Best no-latch candidate RT65_35 bias10_k0.25_s5 at "
                     "motor equilibrium rpm"
                 ),
+                motor_coupling_level=MOTOR_COUPLING_LEVEL,
+                solver_load_note=SOLVER_LOAD_NOTE,
             )
         )
         summary.append(
@@ -1122,6 +1503,8 @@ def run_motor_coupled_reference_consistency_v2(
                     "Same-RPM 25 cm reference estimate; not experimental "
                     "measurement at this rpm"
                 ),
+                motor_coupling_level=MOTOR_COUPLING_LEVEL,
+                solver_load_note=SOLVER_LOAD_NOTE,
             )
         )
 
@@ -1144,6 +1527,8 @@ def run_motor_coupled_reference_consistency_v2(
                 "Fixed 25 cm reference at 7100 rpm used for checkpoint "
                 "ratio comparisons"
             ),
+            motor_coupling_level=MOTOR_COUPLING_LEVEL,
+            solver_load_note=SOLVER_LOAD_NOTE,
         )
     )
 
@@ -1160,6 +1545,8 @@ def run_motor_coupled_reference_consistency_v2(
                     "RT65_35 bias10_k0.25_s5 thrust evaluated at 7100 rpm with "
                     "interpolated motor scalars"
                 ),
+                motor_coupling_level=MOTOR_COUPLING_LEVEL,
+                solver_load_note=SOLVER_LOAD_NOTE,
             )
         )
     if latch_interp is not None:
@@ -1175,6 +1562,8 @@ def run_motor_coupled_reference_consistency_v2(
                     "Latch_theta0 thrust evaluated at 7100 rpm with "
                     "interpolated motor scalars"
                 ),
+                motor_coupling_level=MOTOR_COUPLING_LEVEL,
+                solver_load_note=SOLVER_LOAD_NOTE,
             )
         )
 
@@ -1187,9 +1576,144 @@ def run_motor_coupled_reference_consistency_v2(
             interpretation_note=(
                 "Same checkpoint reference as reference_25cm_at_checkpoint_7100"
             ),
+            motor_coupling_level=MOTOR_COUPLING_LEVEL,
+            solver_load_note=SOLVER_LOAD_NOTE,
         )
     )
     return summary
+
+
+def run_motor_coupled_consistency_audit_v2(
+    performance_rows: Sequence[MotorCoupledPerformanceRow],
+    interpolated_rows: Sequence[MotorCoupled7100InterpolatedRow],
+    *,
+    current_operating_throttle: float = 0.70,
+) -> list[MotorCoupledConsistencyAuditRow]:
+    """Audit motor-coupled output consistency checks."""
+    audits: list[MotorCoupledConsistencyAuditRow] = []
+
+    root_interp = next(
+        (row for row in interpolated_rows if row.case_id == "root_only_20cm"),
+        None,
+    )
+    rt65_interp = next(
+        (
+            row
+            for row in interpolated_rows
+            if row.case_id == "bias10_k0.25_s5"
+            and row.variant_id == "TIP_HINGED_250_RT65_35"
+        ),
+        None,
+    )
+    deployed_row = next(
+        (
+            row
+            for row in performance_rows
+            if row.case_id == "bias10_k0.25_s5"
+            and row.variant_id == "TIP_HINGED_250_RT65_35"
+            and abs(row.throttle - current_operating_throttle) < 1e-6
+        ),
+        None,
+    )
+    latch_interp = next(
+        (row for row in interpolated_rows if row.case_id == "latch_theta0"),
+        None,
+    )
+
+    if root_interp is not None:
+        root_ok = (
+            root_interp.aero_torque_basis == "foldable_proxy"
+            and root_interp.aero_torque_nm is not None
+            and root_interp.aero_torque_nm > 0.0
+        )
+        audits.append(
+            MotorCoupledConsistencyAuditRow(
+                check_id="aero_torque_root_only_check",
+                status="pass" if root_ok else "fail",
+                value=(
+                    f"basis={root_interp.aero_torque_basis}; "
+                    f"torque={root_interp.aero_torque_nm}"
+                ),
+                expected_behavior=(
+                    "root_only aero torque computed via foldable_proxy, not silent 0"
+                ),
+                note="Uses D_aero=0.20 m with full root effectiveness",
+            )
+        )
+
+    if rt65_interp is not None:
+        gain_compact = rt65_interp.gain_vs_compact_root_20cm_percent
+        gain_variant = rt65_interp.gain_vs_variant_root_segment_percent
+        compact_ok = 60.0 <= gain_compact <= 85.0
+        audits.append(
+            MotorCoupledConsistencyAuditRow(
+                check_id="baseline_gain_rt65_check",
+                status="pass" if compact_ok else "fail",
+                value=(
+                    f"gain_vs_compact_root={gain_compact:.1f}%; "
+                    f"gain_vs_variant_root={gain_variant:.1f}%"
+                ),
+                expected_behavior=(
+                    "RT65_35 gain vs compact 20 cm ~70%; variant gain may be larger"
+                ),
+                note=rt65_interp.root_baseline_note,
+            )
+        )
+
+    if deployed_row is not None:
+        ref_ok = (
+            deployed_row.reference_25cm_at_current_rpm_n
+            < deployed_row.reference_25cm_at_checkpoint_7100_n
+        )
+        audits.append(
+            MotorCoupledConsistencyAuditRow(
+                check_id="reference_basis_check",
+                status="pass" if ref_ok else "fail",
+                value=(
+                    f"checkpoint={deployed_row.reference_25cm_at_checkpoint_7100_n:.3f}; "
+                    f"current={deployed_row.reference_25cm_at_current_rpm_n:.3f}"
+                ),
+                expected_behavior=(
+                    "checkpoint and current-rpm references remain separated at 6547 rpm"
+                ),
+                note=deployed_row.reference_basis_note,
+            )
+        )
+
+    coupling_ok = all(
+        row.motor_coupling_level == MOTOR_COUPLING_LEVEL for row in performance_rows
+    ) and all(row.motor_coupling_level == MOTOR_COUPLING_LEVEL for row in interpolated_rows)
+    audits.append(
+        MotorCoupledConsistencyAuditRow(
+            check_id="coupling_level_check",
+            status="pass" if coupling_ok else "fail",
+            value=MOTOR_COUPLING_LEVEL,
+            expected_behavior="all rows use reference_load_postprocess",
+            note=SOLVER_LOAD_NOTE,
+        )
+    )
+
+    if latch_interp is not None:
+        margin_ok = (
+            latch_interp.torque_margin_note != "not_computed"
+            and latch_interp.motor_torque_margin_nm is not None
+        )
+        audits.append(
+            MotorCoupledConsistencyAuditRow(
+                check_id="torque_margin_check",
+                status="pass" if margin_ok else "fail",
+                value=latch_interp.torque_margin_note,
+                expected_behavior=(
+                    "torque margin computed at interpolated 7100 rpm when aero known"
+                ),
+                note=(
+                    f"motor={latch_interp.motor_torque_nm:.4f} Nm; "
+                    f"aero={latch_interp.aero_torque_nm}"
+                ),
+            )
+        )
+
+    return audits
 
 
 def write_motor_coupled_foldable_performance_v2_csv(
@@ -1238,6 +1762,19 @@ def write_motor_coupled_reference_consistency_v2_csv(
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
             handle, fieldnames=list(MOTOR_COUPLED_REFERENCE_CONSISTENCY_V2_COLUMNS)
+        )
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row.to_csv_row())
+
+
+def write_motor_coupled_consistency_audit_v2_csv(
+    path: str,
+    rows: Sequence[MotorCoupledConsistencyAuditRow],
+) -> None:
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=list(MOTOR_COUPLED_CONSISTENCY_AUDIT_V2_COLUMNS)
         )
         writer.writeheader()
         for row in rows:

@@ -10,17 +10,21 @@ import pytest
 from pythrust.foldable.dynamics.motor_coupled_performance import (
     MOTOR_COUPLED_7100RPM_CHECKPOINT_V2_COLUMNS,
     MOTOR_COUPLED_7100RPM_INTERPOLATED_V2_COLUMNS,
+    MOTOR_COUPLED_CONSISTENCY_AUDIT_V2_COLUMNS,
     MOTOR_COUPLED_FOLDABLE_PERFORMANCE_V2_COLUMNS,
     MOTOR_COUPLED_REFERENCE_CONSISTENCY_V2_COLUMNS,
+    MOTOR_COUPLING_LEVEL,
     DEFAULT_TARGET_CHECKPOINT_RPM,
     interpolate_motor_scalars_at_target_rpm,
     reference_25cm_at_rpm_n,
     run_motor_coupled_7100rpm_checkpoint_v2,
     run_motor_coupled_7100rpm_interpolated_v2,
+    run_motor_coupled_consistency_audit_v2,
     run_motor_coupled_foldable_performance_v2,
     run_motor_coupled_reference_consistency_v2,
     write_motor_coupled_7100rpm_checkpoint_v2_csv,
     write_motor_coupled_7100rpm_interpolated_v2_csv,
+    write_motor_coupled_consistency_audit_v2_csv,
     write_motor_coupled_foldable_performance_v2_csv,
     write_motor_coupled_reference_consistency_v2_csv,
 )
@@ -257,3 +261,100 @@ def test_performance_csv_has_reference_columns(v02_physics_setup, tmp_path: Path
         assert "reference_25cm_at_checkpoint_7100_n" in first
         assert "reference_basis_note" in first
         assert first["reference_basis_note"]
+
+
+def test_root_only_aero_torque_not_silent_zero(v02_physics_setup) -> None:
+    config, prop = v02_physics_setup
+    perf_rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.7,),
+    )
+    interp_rows = run_motor_coupled_7100rpm_interpolated_v2(
+        config, prop, perf_rows, t_end_s=0.3
+    )
+    root = next(row for row in interp_rows if row.case_id == "root_only_20cm")
+    assert root.aero_torque_basis == "foldable_proxy"
+    assert root.aero_torque_nm is not None
+    assert root.aero_torque_nm > 0.0
+
+
+def test_separate_root_baseline_gains(v02_physics_setup) -> None:
+    config, prop = v02_physics_setup
+    perf_rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.7, 0.85, 1.0),
+    )
+    interp_rows = run_motor_coupled_7100rpm_interpolated_v2(
+        config, prop, perf_rows, t_end_s=0.3
+    )
+    rt65 = next(
+        row
+        for row in interp_rows
+        if row.case_id == "bias10_k0.25_s5"
+        and row.variant_id == "TIP_HINGED_250_RT65_35"
+    )
+    assert rt65.gain_vs_compact_root_20cm_percent == pytest.approx(70.0, abs=5.0)
+    assert rt65.gain_vs_variant_root_segment_percent > 150.0
+    assert "internal geometry" in rt65.root_baseline_note
+
+
+def test_motor_coupling_level_and_torque_margin(v02_physics_setup) -> None:
+    config, prop = v02_physics_setup
+    perf_rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.7, 0.85, 1.0),
+    )
+    interp_rows = run_motor_coupled_7100rpm_interpolated_v2(
+        config, prop, perf_rows, t_end_s=0.3
+    )
+    for row in perf_rows:
+        assert row.motor_coupling_level == MOTOR_COUPLING_LEVEL
+        assert row.solver_load_note
+    latch = next(row for row in interp_rows if row.case_id == "latch_theta0")
+    assert latch.motor_coupling_level == "reference_load_postprocess"
+    assert latch.torque_margin_note != "not_computed"
+    assert latch.motor_torque_margin_nm is not None
+    assert latch.motor_torque_margin_percent is not None
+
+
+def test_consistency_audit_csv(v02_physics_setup, tmp_path: Path) -> None:
+    config, prop = v02_physics_setup
+    perf_rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        t_end_s=0.3,
+        throttle_values=(0.7, 0.85, 1.0),
+    )
+    interp_rows = run_motor_coupled_7100rpm_interpolated_v2(
+        config, prop, perf_rows, t_end_s=0.3
+    )
+    audit_rows = run_motor_coupled_consistency_audit_v2(perf_rows, interp_rows)
+    assert len(audit_rows) == 5
+    assert all(row.status == "pass" for row in audit_rows)
+    path = tmp_path / "motor_coupled_consistency_audit_v2.csv"
+    write_motor_coupled_consistency_audit_v2_csv(str(path), audit_rows)
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == list(MOTOR_COUPLED_CONSISTENCY_AUDIT_V2_COLUMNS)
+
+
+def test_reference_separation_preserved(v02_physics_setup) -> None:
+    config, prop = v02_physics_setup
+    rows = run_motor_coupled_foldable_performance_v2(
+        config,
+        prop,
+        evaluation_cases=(("TIP_HINGED_250_RT65_35", "bias10_k0.25_s5", (65, 35)),),
+        t_end_s=0.3,
+        throttle_values=(0.7,),
+    )
+    row = rows[0]
+    assert row.reference_25cm_at_current_rpm_n < row.reference_25cm_at_checkpoint_7100_n
+    assert row.ratio_to_current_25cm_pretest != pytest.approx(
+        row.ratio_to_checkpoint_25cm_pretest, rel=1e-3
+    )
