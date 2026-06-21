@@ -21,18 +21,24 @@ ThrustSplitMode = Literal[
     "independent_tip_disk",
     "effective_diameter_delta",
     "annular_extension_proxy",
+    "calibrated_effective_diameter_delta",
 ]
 
 THRUST_SPLIT_MODES: tuple[ThrustSplitMode, ...] = (
     "independent_tip_disk",
     "effective_diameter_delta",
     "annular_extension_proxy",
+    "calibrated_effective_diameter_delta",
 )
 
 MODE_NOTES: dict[ThrustSplitMode, str] = {
     "independent_tip_disk": "Legacy: tip as standalone disk d_tip=2*extension, T_tip~d_tip^4",
     "effective_diameter_delta": "BEM-lite: T_tip=max(T(D_aero)-T(D_root),0)",
     "annular_extension_proxy": "BEM-lite: annulus area fraction of full-open increment",
+    "calibrated_effective_diameter_delta": (
+        "Calibrated BEM-lite delta: ideal tip delta × tip_delta_efficiency_factor "
+        "(pretest 70% or target 85% of 25 cm reference)"
+    ),
 }
 
 
@@ -154,6 +160,45 @@ def _split_annular_extension_proxy(
 
     eff = _clamp01(tip_aero_effectiveness)
     thrust_tip = increment * annulus_fraction * eff
+    return thrust_root, thrust_tip, thrust_root + thrust_tip
+
+
+def _split_calibrated_effective_diameter_delta(
+    *,
+    rpm: float,
+    d_root: float,
+    d_aero: float,
+    d_open: float,
+    config: FoldablePropellerConfig,
+    prop_entry: PropellerEntry,
+    rho: float,
+    thrust_scale: float,
+) -> tuple[float, float, float]:
+    """Calibrated effective-diameter delta (BEM-lite, not full BEM)."""
+    from .thrust_split_calibration import (
+        resolve_tip_delta_calibration_preset,
+        tip_delta_efficiency_factor_for_preset,
+    )
+
+    preset = resolve_tip_delta_calibration_preset(config)
+    factor = tip_delta_efficiency_factor_for_preset(
+        config,
+        preset,
+        rpm=rpm,
+        d_root=d_root,
+        d_open=d_open,
+        prop_entry=prop_entry,
+        rho=rho,
+    )
+    thrust_root, thrust_tip_ideal, _ = _split_effective_diameter_delta(
+        rpm=rpm,
+        d_root=d_root,
+        d_aero=d_aero,
+        prop_entry=prop_entry,
+        rho=rho,
+        thrust_scale=thrust_scale,
+    )
+    thrust_tip = thrust_tip_ideal * factor
     return thrust_root, thrust_tip, thrust_root + thrust_tip
 
 
@@ -287,6 +332,17 @@ def compute_split_thrust(
             d_geo=d_geo,
             diameter_open_m=geometry.diameter_open_m,
             tip_aero_effectiveness=eff,
+            prop_entry=prop_entry,
+            rho=rho,
+            thrust_scale=scale,
+        )
+    elif mode == "calibrated_effective_diameter_delta":
+        thrust_root, thrust_tip, thrust_total = _split_calibrated_effective_diameter_delta(
+            rpm=rpm,
+            d_root=d_root,
+            d_aero=d_aero,
+            d_open=geometry.diameter_open_m,
+            config=config,
             prop_entry=prop_entry,
             rho=rho,
             thrust_scale=scale,

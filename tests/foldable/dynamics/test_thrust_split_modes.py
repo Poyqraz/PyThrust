@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import csv
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from pythrust.foldable.dynamics.split_thrust import (
     THRUST_SPLIT_MODES,
+    _thrust_from_diameter,
     compute_split_thrust,
+)
+from pythrust.foldable.dynamics.thrust_split_calibration import (
+    tip_delta_efficiency_factor_for_preset,
 )
 from pythrust.foldable.models import load_config
 from pythrust.propellers import PropellerDatabase
@@ -101,3 +106,88 @@ def test_thrust_split_comparison_csv(v02_prop, tmp_path: Path) -> None:
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         assert reader.fieldnames == list(THRUST_SPLIT_COMPARISON_COLUMNS)
+
+
+def test_calibrated_pretest_hits_reference_fraction_at_open(v02_prop) -> None:
+    config, prop = v02_prop
+    d_open = config.geometry.diameter_open_m
+    d_root = config.geometry.hinge_position_m * 2.0
+    scale = config.calibration.k_thrust
+    reference = _thrust_from_diameter(
+        7100.0, d_open, prop, rho=1.225, scale=scale
+    )
+
+    pretest_config = replace(
+        config,
+        calibration=replace(
+            config.calibration,
+            thrust_split_mode="calibrated_effective_diameter_delta",
+            tip_delta_calibration_preset="pretest_70_percent",
+        ),
+    )
+    result = compute_split_thrust(
+        rpm=7100.0,
+        theta_deg=0.0,
+        tip_aero_effectiveness=1.0,
+        config=pretest_config,
+        prop_entry=prop,
+    )
+    assert result.thrust_total_n == pytest.approx(reference * 0.70, rel=1e-6)
+
+
+def test_calibrated_target_hits_reference_fraction_at_open(v02_prop) -> None:
+    config, prop = v02_prop
+    d_open = config.geometry.diameter_open_m
+    scale = config.calibration.k_thrust
+    reference = _thrust_from_diameter(
+        7100.0, d_open, prop, rho=1.225, scale=scale
+    )
+
+    target_config = replace(
+        config,
+        calibration=replace(
+            config.calibration,
+            thrust_split_mode="calibrated_effective_diameter_delta",
+            tip_delta_calibration_preset="target_85_percent",
+        ),
+    )
+    result = compute_split_thrust(
+        rpm=7100.0,
+        theta_deg=0.0,
+        tip_aero_effectiveness=1.0,
+        config=target_config,
+        prop_entry=prop,
+    )
+    assert result.thrust_total_n == pytest.approx(reference * 0.85, rel=1e-6)
+
+
+def test_calibrated_efficiency_factor_at_open(v02_prop) -> None:
+    config, prop = v02_prop
+    d_open = config.geometry.diameter_open_m
+    d_root = config.geometry.hinge_position_m * 2.0
+    factor = tip_delta_efficiency_factor_for_preset(
+        config,
+        "pretest_70_percent",
+        rpm=7100.0,
+        d_root=d_root,
+        d_open=d_open,
+        prop_entry=prop,
+    )
+    assert 0.0 < factor < 1.0
+
+
+def test_calibrated_diagnostic_csv(v02_prop, tmp_path: Path) -> None:
+    from pythrust.foldable.dynamics.physics_calibrated_thrust_split_diagnostic import (
+        CALIBRATED_THRUST_SPLIT_DIAGNOSTIC_COLUMNS,
+        run_calibrated_thrust_split_diagnostic,
+        write_calibrated_thrust_split_diagnostic_csv,
+    )
+
+    config, prop = v02_prop
+    rows = run_calibrated_thrust_split_diagnostic(config, prop, t_end_s=0.3)
+    assert len(rows) == 4
+    path = tmp_path / "calibrated_thrust_split_diagnostic.csv"
+    write_calibrated_thrust_split_diagnostic_csv(str(path), rows)
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        assert reader.fieldnames == list(CALIBRATED_THRUST_SPLIT_DIAGNOSTIC_COLUMNS)

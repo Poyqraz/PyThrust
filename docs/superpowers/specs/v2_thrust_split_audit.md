@@ -100,8 +100,19 @@ The tip segment adds **circulation at outer radii**, increasing total rotor thru
 | `independent_tip_disk` | Legacy comparison, conservative lower bound |
 | `effective_diameter_delta` | When `D_aero` is trusted; simplest consistency with aero diameter |
 | `annular_extension_proxy` | When geometric annulus fraction is preferred over D_aero blend |
+| `calibrated_effective_diameter_delta` | TÜBİTAK reporting with `pretest_70_percent` or `target_85_percent` |
 
-Neither new mode is final BEM/CFD — both are labelled **BEM-lite / proxy** models.
+### Calibrated effective diameter delta
+
+```
+T_tip_calibrated = T_tip_ideal_delta × tip_delta_efficiency_factor
+T_total          = T_root + T_tip_calibrated
+```
+
+Presets derive `tip_delta_efficiency_factor` from 25 cm reference thrust:
+`pretest_70_percent` (0.70), `target_85_percent` (0.85).
+
+Neither proxy mode is final BEM/CFD — all are labelled **BEM-lite / proxy** models.
 
 ## Remaining limitations before BEM/CFD
 

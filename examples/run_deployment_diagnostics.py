@@ -9,11 +9,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from pythrust.foldable.dynamics import (  # noqa: E402
+    run_calibrated_thrust_split_diagnostic,
     run_deployment_bias_stiffness_sweep,
     run_open_latch_diagnostic_cases,
     run_thrust_split_model_comparison,
     run_tip_thrust_activation_diagnostic,
     run_tip_thrust_latch_comparison,
+    write_calibrated_thrust_split_diagnostic_csv,
     write_deployment_bias_stiffness_sweep_csv,
     write_thrust_split_model_comparison_csv,
     write_tip_thrust_activation_csv,
@@ -53,12 +55,19 @@ def main() -> None:
         split_rows,
     )
 
+    calibrated_rows = run_calibrated_thrust_split_diagnostic(config, prop_entry)
+    write_calibrated_thrust_split_diagnostic_csv(
+        str(OUTPUT_DIR / "calibrated_thrust_split_diagnostic.csv"),
+        calibrated_rows,
+    )
+
     meaningful = [r for r in sweep_rows if r.reaches_meaningful_deployment_flag]
     open_stop = [r for r in [*sweep_rows, *latch_rows] if r.reaches_open_stop_flag]
     print(f"Deployment sweep : {len(sweep_rows)} cases, {len(meaningful)} meaningful")
     print(f"Open latch cases : {len(latch_rows)} cases, {len(open_stop)} open_stop")
     print(f"Tip activation   : {len(tip_rows) + len(tip_latch_rows)} cases")
     print(f"Split comparison : {len(split_rows)} rows")
+    print(f"Calibrated split : {len(calibrated_rows)} rows")
     print(f"Output           : {OUTPUT_DIR}")
 
 
