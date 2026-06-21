@@ -15,6 +15,8 @@ from pythrust.foldable.dynamics import (  # noqa: E402
     run_foldable_candidate_ranking_v2,
     run_foldable_design_decision_matrix_v2,
     run_foldable_performance_summary_v2,
+    run_motor_coupled_7100rpm_checkpoint_v2,
+    run_motor_coupled_foldable_performance_v2,
     run_open_latch_diagnostic_cases,
     run_thrust_split_model_comparison,
     run_tip_thrust_activation_diagnostic,
@@ -24,6 +26,8 @@ from pythrust.foldable.dynamics import (  # noqa: E402
     write_foldable_candidate_ranking_v2_csv,
     write_foldable_design_decision_matrix_v2_csv,
     write_foldable_performance_summary_v2_csv,
+    write_motor_coupled_7100rpm_checkpoint_v2_csv,
+    write_motor_coupled_foldable_performance_v2_csv,
     write_thrust_split_model_comparison_csv,
     write_tip_thrust_activation_csv,
 )
@@ -74,6 +78,17 @@ def main() -> None:
         ranking_rows,
     )
 
+    motor_rows = run_motor_coupled_foldable_performance_v2(config, prop_entry)
+    motor_checkpoint_rows = run_motor_coupled_7100rpm_checkpoint_v2(motor_rows)
+    write_motor_coupled_foldable_performance_v2_csv(
+        str(OUTPUT_DIR / "motor_coupled_foldable_performance_v2.csv"),
+        motor_rows,
+    )
+    write_motor_coupled_7100rpm_checkpoint_v2_csv(
+        str(OUTPUT_DIR / "motor_coupled_7100rpm_checkpoint_v2.csv"),
+        motor_checkpoint_rows,
+    )
+
     tip_rows = run_tip_thrust_activation_diagnostic(config, prop_entry)
     tip_latch_rows = run_tip_thrust_latch_comparison(config, prop_entry)
     write_tip_thrust_activation_csv(
@@ -100,6 +115,7 @@ def main() -> None:
     print(f"Performance v2   : {len(summary_rows)} rows")
     print(f"Decision matrix  : {len(decision_rows)} rows")
     print(f"Candidate rank   : {len(ranking_rows)} rows")
+    print(f"Motor coupled    : {len(motor_rows)} rows, {len(motor_checkpoint_rows)} checkpoints")
     print(f"Tip activation   : {len(tip_rows) + len(tip_latch_rows)} cases")
     print(f"Split comparison : {len(split_rows)} rows")
     print(f"Calibrated split : {len(calibrated_rows)} rows")
