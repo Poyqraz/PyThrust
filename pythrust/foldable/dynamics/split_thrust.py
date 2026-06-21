@@ -36,8 +36,8 @@ MODE_NOTES: dict[ThrustSplitMode, str] = {
     "effective_diameter_delta": "BEM-lite: T_tip=max(T(D_aero)-T(D_root),0)",
     "annular_extension_proxy": "BEM-lite: annulus area fraction of full-open increment",
     "calibrated_effective_diameter_delta": (
-        "Calibrated BEM-lite delta: ideal tip delta × tip_delta_efficiency_factor "
-        "(pretest 70% or target 85% of 25 cm reference)"
+        "Calibrated BEM-lite delta: ideal tip delta × fixed tip_delta_efficiency_factor "
+        "(pretest 70% or target 85% of 25 cm reference, from latch_theta0)"
     ),
 }
 

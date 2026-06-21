@@ -100,17 +100,34 @@ The tip segment adds **circulation at outer radii**, increasing total rotor thru
 | `independent_tip_disk` | Legacy comparison, conservative lower bound |
 | `effective_diameter_delta` | When `D_aero` is trusted; simplest consistency with aero diameter |
 | `annular_extension_proxy` | When geometric annulus fraction is preferred over D_aero blend |
-| `calibrated_effective_diameter_delta` | TÜBİTAK reporting with `pretest_70_percent` or `target_85_percent` |
+| `calibrated_effective_diameter_delta` | TÜBİTAK reporting with `pretest_70_percent_fixed` or `target_85_percent_fixed` |
 
 ### Calibrated effective diameter delta
 
 ```
-T_tip_calibrated = T_tip_ideal_delta × tip_delta_efficiency_factor
+T_tip_calibrated = T_tip_ideal_delta × applied_fixed_factor
 T_total          = T_root + T_tip_calibrated
 ```
 
-Presets derive `tip_delta_efficiency_factor` from 25 cm reference thrust:
-`pretest_70_percent` (0.70), `target_85_percent` (0.85).
+Two factor concepts:
+
+| Concept | Meaning |
+|---------|---------|
+| **Required factor (per case)** | `required_tip / T_tip_ideal_delta` for *this* deployment state so total thrust hits exactly 70% or 85% of the 25 cm reference. Diagnostic only — varies with `D_aero`. |
+| **Applied fixed factor** | Single factor derived from the reference case (`latch_theta0` by default): `pretest_required_tip / T_tip_ideal_delta_at_reference`. Applied uniformly so partial deployment shows lower achieved ratios. |
+
+Presets:
+
+- `pretest_70_percent_fixed` — applied fixed factor for 70% reference (recommended TÜBİTAK default)
+- `target_85_percent_fixed` — applied fixed factor for 85% target
+- `pretest_70_percent`, `target_85_percent` — legacy aliases mapped to the corresponding `_fixed` preset in simulation
+
+Fixed factors at reference (`latch_theta0`, 7100 rpm):
+
+```
+applied_pretest_fixed_factor = pretest_required_tip / T_tip_ideal_delta_reference
+applied_target_fixed_factor  = target_required_tip / T_tip_ideal_delta_reference
+```
 
 Neither proxy mode is final BEM/CFD — all are labelled **BEM-lite / proxy** models.
 

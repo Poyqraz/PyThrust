@@ -108,10 +108,9 @@ def test_thrust_split_comparison_csv(v02_prop, tmp_path: Path) -> None:
         assert reader.fieldnames == list(THRUST_SPLIT_COMPARISON_COLUMNS)
 
 
-def test_calibrated_pretest_hits_reference_fraction_at_open(v02_prop) -> None:
+def test_calibrated_pretest_fixed_hits_reference_fraction_at_open(v02_prop) -> None:
     config, prop = v02_prop
     d_open = config.geometry.diameter_open_m
-    d_root = config.geometry.hinge_position_m * 2.0
     scale = config.calibration.k_thrust
     reference = _thrust_from_diameter(
         7100.0, d_open, prop, rho=1.225, scale=scale
@@ -122,7 +121,7 @@ def test_calibrated_pretest_hits_reference_fraction_at_open(v02_prop) -> None:
         calibration=replace(
             config.calibration,
             thrust_split_mode="calibrated_effective_diameter_delta",
-            tip_delta_calibration_preset="pretest_70_percent",
+            tip_delta_calibration_preset="pretest_70_percent_fixed",
         ),
     )
     result = compute_split_thrust(
@@ -132,10 +131,10 @@ def test_calibrated_pretest_hits_reference_fraction_at_open(v02_prop) -> None:
         config=pretest_config,
         prop_entry=prop,
     )
-    assert result.thrust_total_n == pytest.approx(reference * 0.70, rel=1e-6)
+    assert result.thrust_total_n == pytest.approx(reference * 0.70, rel=1e-4)
 
 
-def test_calibrated_target_hits_reference_fraction_at_open(v02_prop) -> None:
+def test_calibrated_target_fixed_hits_reference_fraction_at_open(v02_prop) -> None:
     config, prop = v02_prop
     d_open = config.geometry.diameter_open_m
     scale = config.calibration.k_thrust
@@ -148,7 +147,7 @@ def test_calibrated_target_hits_reference_fraction_at_open(v02_prop) -> None:
         calibration=replace(
             config.calibration,
             thrust_split_mode="calibrated_effective_diameter_delta",
-            tip_delta_calibration_preset="target_85_percent",
+            tip_delta_calibration_preset="target_85_percent_fixed",
         ),
     )
     result = compute_split_thrust(
@@ -158,7 +157,66 @@ def test_calibrated_target_hits_reference_fraction_at_open(v02_prop) -> None:
         config=target_config,
         prop_entry=prop,
     )
-    assert result.thrust_total_n == pytest.approx(reference * 0.85, rel=1e-6)
+    assert result.thrust_total_n == pytest.approx(reference * 0.85, rel=1e-4)
+
+
+def test_calibrated_partial_deployment_below_pretest_at_open(v02_prop) -> None:
+    config, prop = v02_prop
+    d_open = config.geometry.diameter_open_m
+    scale = config.calibration.k_thrust
+    reference = _thrust_from_diameter(
+        7100.0, d_open, prop, rho=1.225, scale=scale
+    )
+
+    pretest_config = replace(
+        config,
+        calibration=replace(
+            config.calibration,
+            thrust_split_mode="calibrated_effective_diameter_delta",
+            tip_delta_calibration_preset="pretest_70_percent_fixed",
+        ),
+    )
+    open_result = compute_split_thrust(
+        rpm=7100.0,
+        theta_deg=0.0,
+        tip_aero_effectiveness=1.0,
+        config=pretest_config,
+        prop_entry=prop,
+    )
+    partial_result = compute_split_thrust(
+        rpm=7100.0,
+        theta_deg=-13.0,
+        tip_aero_effectiveness=1.0,
+        config=pretest_config,
+        prop_entry=prop,
+    )
+    assert partial_result.thrust_total_n < open_result.thrust_total_n
+    assert partial_result.thrust_total_n / reference < 0.70
+
+
+def test_calibrated_fixed_factor_shared_across_cases(v02_prop) -> None:
+    from pythrust.foldable.dynamics.physics_calibrated_thrust_split_diagnostic import (
+        run_calibrated_thrust_split_diagnostic,
+    )
+
+    config, prop = v02_prop
+    rows = run_calibrated_thrust_split_diagnostic(config, prop, t_end_s=0.3)
+    pretest_factors = {row.applied_pretest_fixed_factor for row in rows}
+    target_factors = {row.applied_target_fixed_factor for row in rows}
+    assert len(pretest_factors) == 1
+    assert len(target_factors) == 1
+    assert rows[0].reference_case_id == "latch_theta0"
+
+    latch = next(row for row in rows if row.case_id == "latch_theta0")
+    bias10 = next(row for row in rows if row.case_id == "bias10_k0.25_s5")
+    assert latch.T_total_pretest_fixed_n == pytest.approx(
+        latch.pretest_required_total_n, rel=1e-4
+    )
+    assert bias10.T_total_pretest_fixed_n < latch.T_total_pretest_fixed_n
+    assert (
+        latch.required_pretest_factor_for_this_case
+        != bias10.required_pretest_factor_for_this_case
+    )
 
 
 def test_calibrated_efficiency_factor_at_open(v02_prop) -> None:
@@ -167,7 +225,7 @@ def test_calibrated_efficiency_factor_at_open(v02_prop) -> None:
     d_root = config.geometry.hinge_position_m * 2.0
     factor = tip_delta_efficiency_factor_for_preset(
         config,
-        "pretest_70_percent",
+        "pretest_70_percent_fixed",
         rpm=7100.0,
         d_root=d_root,
         d_open=d_open,

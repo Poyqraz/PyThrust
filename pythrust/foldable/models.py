@@ -73,7 +73,7 @@ class CalibrationConfig:
     eta_profile: float = 1.0
     reference_diameter_m: float = 0.254
     thrust_split_mode: str = "independent_tip_disk"
-    tip_delta_calibration_preset: str = "pretest_70_percent"
+    tip_delta_calibration_preset: str = "pretest_70_percent_fixed"
 
 
 @dataclass(frozen=True)
@@ -241,7 +241,9 @@ def load_config(path: str | Path) -> FoldablePropellerConfig:
                 calibration_raw.get("thrust_split_mode", "independent_tip_disk")
             ),
             tip_delta_calibration_preset=str(
-                calibration_raw.get("tip_delta_calibration_preset", "pretest_70_percent")
+                calibration_raw.get(
+                    "tip_delta_calibration_preset", "pretest_70_percent_fixed"
+                )
             ),
         ),
         reference_propeller_id=str(raw.get("reference_propeller_id", "")),

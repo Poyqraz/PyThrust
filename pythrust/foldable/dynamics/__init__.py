@@ -92,10 +92,13 @@ from .physics_simulation import run_prescribed_rpm_physics
 from .physics_state import PHYSICS_DEBUG_CSV_COLUMNS, PhysicsState, write_physics_csv
 from .prescribed_rpm import PrescribedRpmConfig
 from .thrust_split_calibration import (
+    DEFAULT_CALIBRATION_REFERENCE_CASE_ID,
     TIP_DELTA_CALIBRATION_PRESETS,
     CalibratedThrustSplitDiagnostics,
+    FixedCalibrationFactors,
     TipDeltaCalibrationPreset,
     compute_calibrated_thrust_split_diagnostics,
+    compute_fixed_calibration_factors,
     tip_delta_efficiency_factor_for_preset,
 )
 from .split_thrust import (
@@ -130,7 +133,10 @@ __all__ = [
     "HingeDynamicsMode",
     "HingeMomentComponents",
     "HingeState",
+    "CENT_MOMENT_MODELS",
     "CALIBRATED_THRUST_SPLIT_DIAGNOSTIC_COLUMNS",
+    "DEFAULT_CALIBRATION_REFERENCE_CASE_ID",
+    "FixedCalibrationFactors",
     "CalibratedThrustSplitDiagnostics",
     "TIP_DELTA_CALIBRATION_PRESETS",
     "TipDeltaCalibrationPreset",
@@ -172,6 +178,7 @@ __all__ = [
     "centrifugal_moment_nm_for_model",
     "classify_physics_hinge_state",
     "compute_hinge_moments",
+    "compute_fixed_calibration_factors",
     "compute_calibrated_thrust_split_diagnostics",
     "compute_split_thrust",
     "compute_tip_thrust_breakdown",
