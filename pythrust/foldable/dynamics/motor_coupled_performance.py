@@ -30,7 +30,7 @@ from ..integration import solve_pythrust_operating_point
 from ..models import FoldablePropellerConfig
 from ..variants import make_variant_config, variant_id_from_ratios
 from .aero import quasi_steady_aero
-from .calibration import TUBITAK_LIFT_REFERENCE_FRACTION, TUBITAK_LIFT_TARGET_FRACTION
+from .calibration import PRETEST_REFERENCE_FRACTION, PROJECT_TARGET_FRACTION
 from .physics_foldable_design_decision import (
     SelectedCaseSpec,
     _resolve_case_state,
@@ -45,8 +45,8 @@ from .physics_thrust_split_diagnostic import _run_case_final_state
 
 DEFAULT_TARGET_CHECKPOINT_RPM = 7100.0
 RPM_AT_CHECKPOINT_TOLERANCE = 50.0
-PRETEST_TARGET_RATIO = TUBITAK_LIFT_REFERENCE_FRACTION
-TARGET_85_RATIO = TUBITAK_LIFT_TARGET_FRACTION
+PRETEST_TARGET_RATIO = PRETEST_REFERENCE_FRACTION
+TARGET_85_RATIO = PROJECT_TARGET_FRACTION
 
 DEFAULT_THROTTLE_VALUES: tuple[float, ...] = (
     0.0,
@@ -599,7 +599,7 @@ def _reference_basis_note(
 ) -> str:
     if case_id == "fixed_25cm_reference":
         return (
-            "fixed_25cm_reference row uses TÜBİTAK checkpoint thrust at 7100 rpm; "
+            "fixed_25cm_reference row uses engineering checkpoint thrust at 7100 rpm; "
             "current-rpm column is n² proxy for same-diameter comparison only"
         )
     if abs(rpm - checkpoint_rpm) < RPM_AT_CHECKPOINT_TOLERANCE:
@@ -698,12 +698,12 @@ def resolve_root_baselines(
     gain_variant = _percent_gain(t_total_pretest, variant_root)
     if abs(compact_eval_context.d_root_m - eval_context.d_root_m) < 1e-6:
         note = (
-            "compact_root_20cm is TÜBİTAK baseline; variant_root_segment matches "
+            "compact_root_20cm is compact root baseline; variant_root_segment matches "
             "compact for V02 geometry"
         )
     else:
         note = (
-            "compact_root_20cm is TÜBİTAK baseline; variant_root_segment is "
+            "compact_root_20cm is compact root baseline; variant_root_segment is "
             "internal geometry diagnostic only"
         )
     return RootBaselineEvaluation(
@@ -1522,7 +1522,7 @@ def run_motor_coupled_reference_consistency_v2(
             row_type="reference_25cm_at_checkpoint_7100",
             rpm=checkpoint_rpm,
             thrust_n=ref_checkpoint,
-            reference_basis="TÜBİTAK checkpoint prescribed rpm",
+            reference_basis="engineering checkpoint prescribed rpm",
             interpretation_note=(
                 "Fixed 25 cm reference at 7100 rpm used for checkpoint "
                 "ratio comparisons"
@@ -1572,7 +1572,7 @@ def run_motor_coupled_reference_consistency_v2(
             row_type="reference_25cm_at_7100",
             rpm=checkpoint_rpm,
             thrust_n=ref_checkpoint,
-            reference_basis="TÜBİTAK checkpoint prescribed rpm",
+            reference_basis="engineering checkpoint prescribed rpm",
             interpretation_note=(
                 "Same checkpoint reference as reference_25cm_at_checkpoint_7100"
             ),

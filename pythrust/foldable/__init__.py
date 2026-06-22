@@ -1,4 +1,4 @@
-"""Katlanabilir pervane analiz modülü (TÜBİTAK 2209-B)."""
+"""Katlanabilir pervane analiz modülü ."""
 
 from .comparison import (
     COMPARISON_COLUMNS,

@@ -1,7 +1,7 @@
 # Katlanabilir Pervane Birim ve Açı Konvansiyonları
 
 Bu belge, `pythrust/foldable/` modülünde kullanılan fiziksel büyüklük ve açı
-konvansiyonlarını tanımlar. TÜBİTAK 2209-B projesi kapsamında üretilen tüm
+konvansiyonlarını tanımlar. katlanır pervane modülü kapsamında üretilen tüm
 sayısal çıktılar bu standarda uyar.
 
 ## Birimler
@@ -64,10 +64,10 @@ effective_diameter_m = diameter_open_m
 efektif çap**tır. İtki hesaplamasında kullanılır; katlanmış depolama zarfı ile
 aynı büyüklük değildir.
 
-## Katlanmış Depolama Zarfı (TÜBİTAK 2209-B)
+## Katlanmış Depolama Zarfı
 
 `stowed_envelope_diameter_m`, tekerlek/şasi üzerinde katlanmış pervanenin
-hedeflenen **depolama zarf çapı**dır (metre). TÜBİTAK 2209-B önerisinde tam açık
+hedeflenen **depolama zarf çapı**dır (metre). tasarım önerisinde tam açık
 hedef 0.25 m, katlanmış zarf hedefi 0.14 m olarak tanımlanmıştır.
 
 | Alan | Anlam | İtki modelinde kullanım |
@@ -225,14 +225,14 @@ static/quasi-static foldable model.
 - `outputs/foldable/dynamics/dynamic_spinup_RT75_25_ramp.csv` — linear ramp startup
   (`ramp_time_s=0.5`)
 - `outputs/foldable/dynamics/dynamic_spinup_RT75_25.csv` — legacy alias of step CSV
-- `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25_step.csv` — TÜBİTAK
+- `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25_step.csv` — checkpoint
   checkpoint summary (step profile)
-- `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25_ramp.csv` — TÜBİTAK
+- `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25_ramp.csv` — checkpoint
   checkpoint summary (ramp profile)
 - `outputs/foldable/dynamics/dynamic_spinup_summary_RT75_25.csv` — legacy alias of
   step summary
 - `outputs/foldable/dynamics/figures/spinup_RT75_25_step.png` — 4-panel step summary
-  (RPM, θ, thrust, D_eff vs time) with TÜBİTAK 7100 rpm annotations
+  (RPM, θ, thrust, D_eff vs time) with 7100 rpm checkpoint annotations
 - `outputs/foldable/dynamics/figures/spinup_RT75_25_ramp.png` — 4-panel ramp summary
 - `outputs/foldable/dynamics/figures/spinup_RT75_25_step_report.png` — report-clean
   step figure (checkpoint box in reserved margin)
@@ -302,14 +302,14 @@ Use config `TIP_HINGED_250_V02.json` with parallel-stow geometry.
 - `ideal_geometry_ratio_at_7100_rpm` = simulated thrust / reference open propeller
   thrust at 7100 rpm when the model is fully deployed; **not** experimental
   performance (assumes no profile/hinge/manufacturing loss once open).
-- `current_pretest_ratio` (0.70) is the TÜBİTAK **pretest reference** vs the
+- `current_pretest_ratio` (0.70) is the **pretest reference** vs the
   same-diameter standard propeller; not an automatic V1 model result.
-- `project_target_ratio` (0.85) is the TÜBİTAK **project target**; future
+- `project_target_ratio` (0.85) is the **project target**; future
   BEM/CFD/experiment calibration required.
 - `current_calibrated_thrust_at_7100_rpm` and `target_thrust_at_7100_rpm` scale
-  the reference thrust by those TÜBİTAK fractions for proposal alignment.
+  the reference thrust by those calibration fractions for proposal alignment.
 
-**TÜBİTAK reference hooks** (`dynamics/calibration.py`): 25 cm open diameter,
+**Calibration reference hooks** (`dynamics/calibration.py`): 25 cm open diameter,
 14 cm stowed envelope, 7100 rpm pretest, 70% pretest / 85% project lift targets
 (future BEM/CFD/experiment calibration).
 

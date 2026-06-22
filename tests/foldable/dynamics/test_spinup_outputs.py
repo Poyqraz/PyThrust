@@ -9,14 +9,14 @@ import pytest
 
 from pythrust.foldable.dynamics import (
     SPINUP_SUMMARY_CSV_COLUMNS,
-    TUBITAK_LIFT_REFERENCE_FRACTION,
-    TUBITAK_LIFT_TARGET_FRACTION,
-    TUBITAK_PRETEST_RPM,
+    PRETEST_REFERENCE_FRACTION,
+    PROJECT_TARGET_FRACTION,
+    CHECKPOINT_RPM,
     export_spinup_frames,
     plot_spinup_summary,
     run_spinup_simulation,
     spinup_checkpoint_summary,
-    tubitak_validation_summary,
+    checkpoint_validation_summary,
     write_spinup_summary_csv,
 )
 from pythrust.foldable.models import load_config
@@ -138,14 +138,14 @@ def test_export_spinup_frames_ramp_profile_suffix(rt75_spinup_states, tmp_path: 
     assert manifest["ramp_time_s"] == pytest.approx(0.5)
 
 
-def test_tubitak_validation_summary(rt75_spinup_states) -> None:
+def test_checkpoint_validation_summary(rt75_spinup_states) -> None:
     variant, states = rt75_spinup_states
-    summary = tubitak_validation_summary(states, variant)
+    summary = checkpoint_validation_summary(states, variant)
     assert summary.folded_start_theta_deg == pytest.approx(variant.hinge.theta_min_deg)
     assert summary.max_rpm > 0.0
     assert summary.max_thrust_n >= 0.0
     assert summary.open_diameter_m == pytest.approx(0.25)
-    assert summary.pretest_rpm_target == pytest.approx(TUBITAK_PRETEST_RPM)
+    assert summary.pretest_rpm_target == pytest.approx(CHECKPOINT_RPM)
 
 
 def test_load_config_optional_dynamics_fields() -> None:
@@ -170,21 +170,21 @@ def test_spinup_checkpoint_summary_csv(rt75_spinup_states, tmp_path: Path) -> No
         rows = list(reader)
     assert len(rows) == 1
     row = rows[0]
-    assert float(row["checkpoint_rpm"]) == pytest.approx(TUBITAK_PRETEST_RPM)
+    assert float(row["checkpoint_rpm"]) == pytest.approx(CHECKPOINT_RPM)
     assert float(row["current_pretest_ratio"]) == pytest.approx(
-        TUBITAK_LIFT_REFERENCE_FRACTION
+        PRETEST_REFERENCE_FRACTION
     )
-    assert float(row["project_target_ratio"]) == pytest.approx(TUBITAK_LIFT_TARGET_FRACTION)
+    assert float(row["project_target_ratio"]) == pytest.approx(PROJECT_TARGET_FRACTION)
     assert summary.reference_thrust_at_7100_rpm > 0.0
     assert summary.ideal_geometry_ratio_at_7100_rpm is not None
     assert summary.current_calibrated_thrust_at_7100_rpm == pytest.approx(
-        summary.reference_thrust_at_7100_rpm * TUBITAK_LIFT_REFERENCE_FRACTION
+        summary.reference_thrust_at_7100_rpm * PRETEST_REFERENCE_FRACTION
     )
     assert summary.target_thrust_at_7100_rpm == pytest.approx(
-        summary.reference_thrust_at_7100_rpm * TUBITAK_LIFT_TARGET_FRACTION
+        summary.reference_thrust_at_7100_rpm * PROJECT_TARGET_FRACTION
     )
     assert summary.current_calibrated_gap_to_target_percent == pytest.approx(
-        (TUBITAK_LIFT_TARGET_FRACTION - TUBITAK_LIFT_REFERENCE_FRACTION)
-        / TUBITAK_LIFT_TARGET_FRACTION
+        (PROJECT_TARGET_FRACTION - PRETEST_REFERENCE_FRACTION)
+        / PROJECT_TARGET_FRACTION
         * 100.0
     )

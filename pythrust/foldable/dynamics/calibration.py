@@ -1,4 +1,4 @@
-"""TÜBİTAK proposal reference targets and dynamic spin-up validation hooks."""
+"""Engineering reference targets and dynamic spin-up validation hooks."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ from ..models import FoldablePropellerConfig
 from .aero import reference_propeller_thrust_n
 from .state import DynamicState
 
-TUBITAK_OPEN_DIAMETER_M = 0.25
-TUBITAK_STOWED_ENVELOPE_DIAMETER_M = 0.14
-TUBITAK_PRETEST_RPM = 7100.0
-TUBITAK_LIFT_REFERENCE_FRACTION = 0.70
-TUBITAK_LIFT_TARGET_FRACTION = 0.85
+FOLDABLE_OPEN_DIAMETER_M = 0.25
+FOLDABLE_STOWED_ENVELOPE_DIAMETER_M = 0.14
+CHECKPOINT_RPM = 7100.0
+PRETEST_REFERENCE_FRACTION = 0.70
+PROJECT_TARGET_FRACTION = 0.85
 
 IDEAL_GEOMETRY_RATIO_NOTE = (
     "ideal_geometry_ratio_at_7100_rpm is not experimental performance; it assumes "
@@ -42,7 +42,7 @@ SPINUP_SUMMARY_CSV_COLUMNS: tuple[str, ...] = (
 
 
 @dataclass(frozen=True)
-class TubitakValidationSummary:
+class CheckpointValidationSummary:
     """Compare dynamic spin-up peaks against proposal reference targets."""
 
     open_diameter_m: float
@@ -76,17 +76,17 @@ class TubitakValidationSummary:
             "(aerodynamic, not stowed envelope)",
             f"Folded-start theta       : {self.folded_start_theta_deg:.1f}°",
             f"Lift reference fraction  : {self.lift_reference_fraction:.0%} "
-            "(TÜBİTAK pretest foldable vs same-diameter standard propeller; "
+            "(pretest foldable vs same-diameter standard propeller; "
             "calibration reference, not an automatic model result)",
             f"Lift target fraction     : {self.lift_target_fraction:.0%} "
-            "(TÜBİTAK project goal; future BEM/CFD/experiment calibration)",
+            "(project design goal; future BEM/CFD/experiment calibration)",
             IDEAL_GEOMETRY_RATIO_NOTE,
         ]
 
 
 @dataclass(frozen=True)
 class SpinUpCheckpointSummary:
-    """Single-row TÜBİTAK checkpoint at 7100 rpm."""
+    """Single-row engineering checkpoint at 7100 rpm."""
 
     variant_id: str
     checkpoint_rpm: float
@@ -144,10 +144,10 @@ def spinup_checkpoint_summary(
     config: FoldablePropellerConfig,
     prop_entry: PropellerEntry,
     *,
-    checkpoint_rpm: float = TUBITAK_PRETEST_RPM,
+    checkpoint_rpm: float = CHECKPOINT_RPM,
     rho: float = 1.225,
 ) -> SpinUpCheckpointSummary:
-    """Build TÜBİTAK checkpoint row at 7100 rpm (or configured checkpoint)."""
+    """Build engineering checkpoint row at 7100 rpm (or configured checkpoint)."""
     if not states:
         raise ValueError("states must not be empty.")
 
@@ -163,13 +163,13 @@ def spinup_checkpoint_summary(
     if thrust is not None and reference_thrust > 0.0:
         ideal_geometry_ratio = thrust / reference_thrust
 
-    current_calibrated_thrust = reference_thrust * TUBITAK_LIFT_REFERENCE_FRACTION
-    target_thrust = reference_thrust * TUBITAK_LIFT_TARGET_FRACTION
+    current_calibrated_thrust = reference_thrust * PRETEST_REFERENCE_FRACTION
+    target_thrust = reference_thrust * PROJECT_TARGET_FRACTION
     gap_to_target_percent = 0.0
-    if TUBITAK_LIFT_TARGET_FRACTION > 0.0:
+    if PROJECT_TARGET_FRACTION > 0.0:
         gap_to_target_percent = (
-            (TUBITAK_LIFT_TARGET_FRACTION - TUBITAK_LIFT_REFERENCE_FRACTION)
-            / TUBITAK_LIFT_TARGET_FRACTION
+            (PROJECT_TARGET_FRACTION - PRETEST_REFERENCE_FRACTION)
+            / PROJECT_TARGET_FRACTION
             * 100.0
         )
 
@@ -182,8 +182,8 @@ def spinup_checkpoint_summary(
         thrust_at_7100_rpm=thrust,
         reference_thrust_at_7100_rpm=reference_thrust,
         ideal_geometry_ratio_at_7100_rpm=ideal_geometry_ratio,
-        current_pretest_ratio=TUBITAK_LIFT_REFERENCE_FRACTION,
-        project_target_ratio=TUBITAK_LIFT_TARGET_FRACTION,
+        current_pretest_ratio=PRETEST_REFERENCE_FRACTION,
+        project_target_ratio=PROJECT_TARGET_FRACTION,
         current_calibrated_thrust_at_7100_rpm=current_calibrated_thrust,
         target_thrust_at_7100_rpm=target_thrust,
         current_calibrated_gap_to_target_percent=gap_to_target_percent,
@@ -204,24 +204,24 @@ def write_spinup_summary_csv(
     return output_path
 
 
-def tubitak_validation_summary(
+def checkpoint_validation_summary(
     states: Sequence[DynamicState],
     config: FoldablePropellerConfig,
-) -> TubitakValidationSummary:
+) -> CheckpointValidationSummary:
     """Build a validation summary from simulation history and config."""
     if not states:
         raise ValueError("states must not be empty.")
 
     max_thrust_state = max(states, key=lambda row: row.thrust_n)
     stowed = config.geometry.stowed_envelope_diameter_m
-    return TubitakValidationSummary(
+    return CheckpointValidationSummary(
         open_diameter_m=config.geometry.diameter_open_m,
         stowed_envelope_diameter_m=(
-            stowed if stowed is not None else TUBITAK_STOWED_ENVELOPE_DIAMETER_M
+            stowed if stowed is not None else FOLDABLE_STOWED_ENVELOPE_DIAMETER_M
         ),
-        pretest_rpm_target=TUBITAK_PRETEST_RPM,
-        lift_reference_fraction=TUBITAK_LIFT_REFERENCE_FRACTION,
-        lift_target_fraction=TUBITAK_LIFT_TARGET_FRACTION,
+        pretest_rpm_target=CHECKPOINT_RPM,
+        lift_reference_fraction=PRETEST_REFERENCE_FRACTION,
+        lift_target_fraction=PROJECT_TARGET_FRACTION,
         max_rpm=max(row.rpm for row in states),
         max_thrust_n=max_thrust_state.thrust_n,
         max_d_eff_m=max(row.effective_diameter_m for row in states),

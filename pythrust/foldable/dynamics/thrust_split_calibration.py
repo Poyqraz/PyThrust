@@ -1,4 +1,4 @@
-"""Tip-delta efficiency calibration for V2 thrust split (TÜBİTAK pretest/target)."""
+"""Tip-delta efficiency calibration for V2 thrust split (pretest/target calibration)."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from pythrust.propellers.database import PropellerEntry
 
 from ..models import FoldablePropellerConfig
 from .calibration import (
-    TUBITAK_LIFT_REFERENCE_FRACTION,
-    TUBITAK_LIFT_TARGET_FRACTION,
+    PRETEST_REFERENCE_FRACTION,
+    PROJECT_TARGET_FRACTION,
 )
 from .split_thrust import _thrust_from_diameter, _thrust_scale
 
@@ -29,10 +29,10 @@ TIP_DELTA_CALIBRATION_PRESETS: tuple[TipDeltaCalibrationPreset, ...] = (
 )
 
 PRESET_TARGET_RATIOS: dict[TipDeltaCalibrationPreset, float] = {
-    "pretest_70_percent": TUBITAK_LIFT_REFERENCE_FRACTION,
-    "target_85_percent": TUBITAK_LIFT_TARGET_FRACTION,
-    "pretest_70_percent_fixed": TUBITAK_LIFT_REFERENCE_FRACTION,
-    "target_85_percent_fixed": TUBITAK_LIFT_TARGET_FRACTION,
+    "pretest_70_percent": PRETEST_REFERENCE_FRACTION,
+    "target_85_percent": PROJECT_TARGET_FRACTION,
+    "pretest_70_percent_fixed": PRETEST_REFERENCE_FRACTION,
+    "target_85_percent_fixed": PROJECT_TARGET_FRACTION,
 }
 
 DEFAULT_CALIBRATION_REFERENCE_CASE_ID = "latch_theta0"
@@ -115,10 +115,10 @@ def compute_fixed_calibration_factors(
     )
 
     pretest_required_tip = max(
-        reference_total * TUBITAK_LIFT_REFERENCE_FRACTION - thrust_root, 0.0
+        reference_total * PRETEST_REFERENCE_FRACTION - thrust_root, 0.0
     )
     target_required_tip = max(
-        reference_total * TUBITAK_LIFT_TARGET_FRACTION - thrust_root, 0.0
+        reference_total * PROJECT_TARGET_FRACTION - thrust_root, 0.0
     )
 
     if tip_ideal_delta_reference <= 0.0:
@@ -273,8 +273,8 @@ def compute_calibrated_thrust_split_diagnostics(
         rpm, d_open, prop_entry, rho=rho, scale=scale
     )
 
-    pretest_ratio = TUBITAK_LIFT_REFERENCE_FRACTION
-    target_ratio = TUBITAK_LIFT_TARGET_FRACTION
+    pretest_ratio = PRETEST_REFERENCE_FRACTION
+    target_ratio = PROJECT_TARGET_FRACTION
     pretest_required_total = reference_total * pretest_ratio
     target_required_total = reference_total * target_ratio
     pretest_required_tip = max(pretest_required_total - thrust_root, 0.0)

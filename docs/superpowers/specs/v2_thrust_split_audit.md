@@ -100,7 +100,7 @@ The tip segment adds **circulation at outer radii**, increasing total rotor thru
 | `independent_tip_disk` | Legacy comparison, conservative lower bound |
 | `effective_diameter_delta` | When `D_aero` is trusted; simplest consistency with aero diameter |
 | `annular_extension_proxy` | When geometric annulus fraction is preferred over D_aero blend |
-| `calibrated_effective_diameter_delta` | TÜBİTAK reporting with `pretest_70_percent_fixed` or `target_85_percent_fixed` |
+| `calibrated_effective_diameter_delta` | calibrated reporting with `pretest_70_percent_fixed` or `target_85_percent_fixed` |
 
 ### Calibrated effective diameter delta
 
@@ -118,7 +118,7 @@ Two factor concepts:
 
 Presets:
 
-- `pretest_70_percent_fixed` — applied fixed factor for 70% reference (recommended TÜBİTAK default)
+- `pretest_70_percent_fixed` — applied fixed factor for 70% reference (recommended default)
 - `target_85_percent_fixed` — applied fixed factor for 85% target
 - `pretest_70_percent`, `target_85_percent` — legacy aliases mapped to the corresponding `_fixed` preset in simulation
 

@@ -13,7 +13,7 @@
   CFD or BEM.
 - Calibrated pretest thrust applies a **fixed** factor from the latch reference case; it is a
   engineering proxy, not measured tip efficiency.
-- TÜBİTAK 0.70 / 0.85 fractions are **targets** against the 25 cm reference, not guaranteed
+- 0.70 / 0.85 fractions are **targets** against the 25 cm reference, not guaranteed
   experimental outcomes.
 
 ## Aerodynamics and deployment

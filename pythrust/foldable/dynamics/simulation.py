@@ -47,7 +47,7 @@ MODEL_ASSUMPTIONS: tuple[str, ...] = (
     "(default ramp_time_s=0.5 s).",
     "ideal_geometry_ratio_at_7100_rpm is not experimental performance; it assumes "
     "no profile/hinge/manufacturing loss once fully deployed.",
-    "TÜBİTAK 0.70 pretest and 0.85 project ratios are calibration/target references "
+    "0.70 pretest and 0.85 project ratios are calibration/target references "
     "against the same-diameter standard propeller; not automatically achieved by V1.",
     "Static foldable model unchanged; additive dynamics layer only.",
 )

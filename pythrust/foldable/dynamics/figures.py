@@ -11,15 +11,15 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 
-from .calibration import SpinUpCheckpointSummary, TUBITAK_PRETEST_RPM
+from .calibration import SpinUpCheckpointSummary, CHECKPOINT_RPM
 from .state import DynamicState
 from .throttle import ThrottleProfileName
 
 SPINUP_REPORT_FIGURE_NOTE = (
     "Report figure: ramp profile preferred for startup visualization; step = ideal full "
     "command. ideal_geometry_ratio is not experimental performance. "
-    "current_pretest_ratio=0.70 is TÜBİTAK pretest reference; "
-    "project_target_ratio=0.85 is TÜBİTAK project target. "
+    "current_pretest_ratio=0.70 is pretest reference; "
+    "project_target_ratio=0.85 is project target. "
     "Frames are single-arm concept frames, not full two-blade rotor CAD."
 )
 
@@ -39,7 +39,7 @@ def _model_notes_line() -> str:
 
 
 def _format_checkpoint_annotation(checkpoint: SpinUpCheckpointSummary) -> str:
-    lines = [f"TÜBİTAK @ {checkpoint.checkpoint_rpm:.0f} rpm"]
+    lines = [f"Checkpoint @ {checkpoint.checkpoint_rpm:.0f} rpm"]
     if checkpoint.time_to_7100_rpm is not None:
         lines.append(f"t={checkpoint.time_to_7100_rpm:.3f} s")
     if checkpoint.theta_at_7100_rpm is not None:
@@ -59,7 +59,7 @@ def _draw_checkpoint_guides(
     axes,
     checkpoint: SpinUpCheckpointSummary,
     *,
-    checkpoint_rpm: float = TUBITAK_PRETEST_RPM,
+    checkpoint_rpm: float = CHECKPOINT_RPM,
 ) -> None:
     """Horizontal 7100 rpm line on RPM panel; vertical time line on all panels."""
     rpm_axis = axes[0, 0]
@@ -84,7 +84,7 @@ def _annotate_checkpoint_legacy(
     axes,
     checkpoint: SpinUpCheckpointSummary,
     *,
-    checkpoint_rpm: float = TUBITAK_PRETEST_RPM,
+    checkpoint_rpm: float = CHECKPOINT_RPM,
 ) -> None:
     """Legacy inline annotation near the RPM trace (backward compatible)."""
     _draw_checkpoint_guides(axes, checkpoint, checkpoint_rpm=checkpoint_rpm)
@@ -117,7 +117,7 @@ def _annotate_checkpoint_report_clean(
     axes,
     checkpoint: SpinUpCheckpointSummary,
     *,
-    checkpoint_rpm: float = TUBITAK_PRETEST_RPM,
+    checkpoint_rpm: float = CHECKPOINT_RPM,
 ) -> None:
     """Place checkpoint text in a reserved right margin (no title overlap)."""
     _draw_checkpoint_guides(axes, checkpoint, checkpoint_rpm=checkpoint_rpm)

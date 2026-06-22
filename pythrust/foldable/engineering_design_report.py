@@ -274,7 +274,7 @@ def build_report_key_results(metrics: EngineeringReportMetrics) -> list[ReportKe
             metric="gain_vs_compact_20cm_root",
             value=f"{metrics.gain_vs_compact_20cm_root_percent:.1f}",
             unit="percent",
-            interpretation="Primary reporting gain; TÜBİTAK-safe compact root baseline",
+            interpretation="Primary reporting gain; compact-root compact root baseline",
         ),
         ReportKeyResult(
             metric="loss_vs_25cm_reference",
@@ -351,7 +351,7 @@ def _format_main_report(metrics: EngineeringReportMetrics) -> str:
 **Abstract:** This report documents the engineering design and model-based performance evaluation
 of a tip-hinged foldable propeller concept for a compact UAV platform. The V2 modeling stack
 combines hinge kinematics, moment-based deployment, effective-diameter thrust splitting,
-fixed calibration against a TÜBİTAK 7100 rpm checkpoint, variant screening, and a
+fixed calibration against a 7100 rpm engineering checkpoint, variant screening, and a
 motor-coupled post-processing layer. At the interpolated 7100 rpm checkpoint, the calibrated
 foldable pretest configuration delivers approximately **{metrics.foldable_pretest_thrust_7100:.2f} N**
 versus **{metrics.root_only_20cm_thrust_7100:.2f} N** for the compact 20 cm root-only baseline
@@ -429,7 +429,7 @@ from the latch reference case (`pretest_70_percent_fixed`).
 
 Calibration anchors to the latch open-stop reference at 7100 rpm:
 
-- **Pretest target:** 70% of 25 cm reference thrust (TÜBİTAK checkpoint fraction)
+- **Pretest target:** 70% of 25 cm reference thrust (engineering checkpoint fraction)
 - **Project target:** 85% for forward-looking design margin
 - Applied factors are **fixed** across cases; required per-case factors remain diagnostic-only
 
@@ -526,7 +526,7 @@ def _format_assumptions_and_limits() -> str:
   CFD or BEM.
 - Calibrated pretest thrust applies a **fixed** factor from the latch reference case; it is a
   engineering proxy, not measured tip efficiency.
-- TÜBİTAK 0.70 / 0.85 fractions are **targets** against the 25 cm reference, not guaranteed
+- 0.70 / 0.85 fractions are **targets** against the 25 cm reference, not guaranteed
   experimental outcomes.
 
 ## Aerodynamics and deployment

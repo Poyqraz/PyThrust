@@ -16,7 +16,7 @@ from pythrust.foldable.dynamics import (  # noqa: E402
     plot_spinup_summary,
     run_spinup_simulation,
     spinup_checkpoint_summary,
-    tubitak_validation_summary,
+    checkpoint_validation_summary,
     write_spinup_csv,
     write_spinup_summary_csv,
 )
@@ -69,8 +69,8 @@ def _print_checkpoint(label: str, checkpoint) -> None:
         f"  ideal_geometry_ratio_at_7100_rpm    : "
         f"{checkpoint.ideal_geometry_ratio_at_7100_rpm}"
     )
-    print(f"  current_pretest_ratio (TÜBİTAK)     : {checkpoint.current_pretest_ratio}")
-    print(f"  project_target_ratio (TÜBİTAK)      : {checkpoint.project_target_ratio}")
+    print(f"  current_pretest_ratio     : {checkpoint.current_pretest_ratio}")
+    print(f"  project_target_ratio      : {checkpoint.project_target_ratio}")
     print(
         f"  current_calibrated_thrust_at_7100   : "
         f"{checkpoint.current_calibrated_thrust_at_7100_rpm}"
@@ -172,7 +172,7 @@ def main() -> None:
         ramp_time_s=ramp_spinup.ramp_time_s,
         profile_suffix="ramp",
     )
-    validation = tubitak_validation_summary(step_states, variant_config)
+    validation = checkpoint_validation_summary(step_states, variant_config)
 
     print(f"Config  : {DEFAULT_CONFIG_PATH}")
     print(f"Variant : {VARIANT_LABEL} ({variant_config.id})")
@@ -193,7 +193,7 @@ def main() -> None:
     for note in MODEL_ASSUMPTIONS:
         print(f"  - {note}")
     print()
-    print("TÜBİTAK validation hooks:")
+    print("Checkpoint validation hooks:")
     for line in validation.to_lines():
         print(f"  - {line}")
     print()

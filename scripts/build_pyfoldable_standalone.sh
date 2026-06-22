@@ -95,7 +95,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pyfoldable"
 version = "0.2.0"
-description = "Tip-hinged foldable propeller analysis for UAV electric propulsion (TÜBİTAK 2209-B)."
+description = "Tip-hinged foldable propeller analysis for UAV electric propulsion ."
 readme = "README.md"
 authors = [{ name = "Hüseyin Karakaya" }]
 license = { text = "Apache-2.0" }
@@ -129,7 +129,7 @@ GITIGNORE
 cat > "$DEST/README.md" <<'README'
 # PyFoldable
 
-Standalone export of the foldable propeller analysis stack from [PyThrust](https://github.com/Poyqraz/PyThrust) (TÜBİTAK 2209-B).
+Standalone export of the foldable propeller analysis stack from [PyThrust](https://github.com/Poyqraz/PyThrust) .
 
 ## Scope
 

@@ -7,7 +7,7 @@
 **Abstract:** This report documents the engineering design and model-based performance evaluation
 of a tip-hinged foldable propeller concept for a compact UAV platform. The V2 modeling stack
 combines hinge kinematics, moment-based deployment, effective-diameter thrust splitting,
-fixed calibration against a TÜBİTAK 7100 rpm checkpoint, variant screening, and a
+fixed calibration against a 7100 rpm engineering checkpoint, variant screening, and a
 motor-coupled post-processing layer. At the interpolated 7100 rpm checkpoint, the calibrated
 foldable pretest configuration delivers approximately **6.37 N**
 versus **3.73 N** for the compact 20 cm root-only baseline
@@ -85,7 +85,7 @@ from the latch reference case (`pretest_70_percent_fixed`).
 
 Calibration anchors to the latch open-stop reference at 7100 rpm:
 
-- **Pretest target:** 70% of 25 cm reference thrust (TÜBİTAK checkpoint fraction)
+- **Pretest target:** 70% of 25 cm reference thrust (engineering checkpoint fraction)
 - **Project target:** 85% for forward-looking design margin
 - Applied factors are **fixed** across cases; required per-case factors remain diagnostic-only
 
