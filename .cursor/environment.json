@@ -1,0 +1,3 @@
+{
+  "install": "if [ -n \"${GH_PAT:-}\" ]; then echo \"$GH_PAT\" | /exec-daemon/gh auth login --with-token; fi"
+}
