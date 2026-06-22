@@ -38,7 +38,7 @@ cp "$SRC/docs/foldable_conventions.md" "$DEST/docs/"
 cp "$SRC/docs/superpowers/specs/v2_"*.md "$DEST/docs/superpowers/specs/" 2>/dev/null || true
 cp "$SRC/data/propellers/apc_202602/APC_10x4.7SF."* "$DEST/data/propellers/apc_202602/"
 cp -a "$SRC/tests/foldable" "$DEST/tests"
-cp -a "$SRC/reports/foldable_v2_engineering_design" "$DEST/reports/foldable_v2_engineering_design"
+cp -a "$SRC/reports/foldable_v2_engineering_design" "$DEST/reports/"
 cp "$SRC/LICENSE" "$DEST/"
 
 FOLDABLE_EXAMPLES=(

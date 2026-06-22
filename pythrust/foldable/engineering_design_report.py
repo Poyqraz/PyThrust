@@ -274,7 +274,7 @@ def build_report_key_results(metrics: EngineeringReportMetrics) -> list[ReportKe
             metric="gain_vs_compact_20cm_root",
             value=f"{metrics.gain_vs_compact_20cm_root_percent:.1f}",
             unit="percent",
-            interpretation="Primary reporting gain; compact-root compact root baseline",
+            interpretation="Primary reporting gain; compact 20 cm root baseline",
         ),
         ReportKeyResult(
             metric="loss_vs_25cm_reference",

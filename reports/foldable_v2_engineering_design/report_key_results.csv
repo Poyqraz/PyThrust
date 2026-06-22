@@ -2,7 +2,7 @@ metric,value,unit,interpretation
 root_only_20cm_thrust_7100,3.73,N,Compact stowed-root baseline at interpolated 7100 rpm
 foldable_pretest_thrust_7100,6.37,N,Calibrated pretest_70_fixed foldable thrust at 7100 rpm
 fixed_25cm_reference_thrust_7100,9.10,N,Full 25 cm reference propeller thrust at checkpoint rpm
-gain_vs_compact_20cm_root,70.9,percent,Primary reporting gain; compact-root compact root baseline
+gain_vs_compact_20cm_root,70.9,percent,Primary reporting gain; compact 20 cm root baseline
 loss_vs_25cm_reference,30.0,percent,Thrust deficit vs fixed 25 cm reference at same rpm
 interpolated_throttle_7100,0.768,dimensionless,Throttle required to reach 7100 rpm in motor-coupled sweep
 motor_current_7100,17.0,A,Interpolated battery current at 7100 rpm checkpoint
