@@ -1,0 +1,53 @@
+{
+  "id": "TIP_HINGED_250_V01",
+  "description": "Uçtan mafsallı katlanabilir pervane — 250 mm açık çap, V01",
+  "geometry": {
+    "diameter_open_m": 0.25,
+    "main_blade_length_m": 0.10,
+    "tip_segment_length_m": 0.025,
+    "hinge_position_m": 0.10,
+    "tip_segment_mass_kg": 0.002,
+    "tip_segment_cg_from_hinge_m": 0.0125,
+    "blade_count": 2,
+    "stowed_envelope_diameter_m": 0.14
+  },
+  "hinge": {
+    "theta_min_deg": -45.0,
+    "theta_max_deg": 0.0,
+    "rpm_threshold": 2000.0,
+    "rpm_full_open": 8000.0,
+    "hinge_radius_m": 0.10,
+    "hinge_stiffness_nm_per_rad": 0.55,
+    "hinge_friction_nm": 0.007,
+    "hinge_damping_nm_s_per_rad": 0.0
+  },
+  "kinematics": {
+    "kinematics_mode": "moment_based",
+    "model": "linear_saturation",
+    "k_open": 1.0
+  },
+  "calibration": {
+    "k_thrust": 1.0,
+    "k_torque": 1.0,
+    "ct_ref": 0.10,
+    "model_note": "V2 moment-based hinge kinematics, reference_scaled thrust, geometric D_eff; hinge_radius_m not used in V1 M_open",
+    "thrust_model_mode": "reference_scaled",
+    "eta_hinge": 1.0,
+    "eta_profile": 1.0,
+    "reference_diameter_m": 0.254
+  },
+  "reference_propeller_id": "APC_10x4.7SF",
+  "motor": {
+    "kv_rpm_per_v": 980.0,
+    "resistance_ohm": 0.06,
+    "no_load_current_a": 1.2,
+    "current_max_a": 30.0
+  },
+  "battery": {
+    "voltage_v": 11.1,
+    "discharge_efficiency": 0.98
+  },
+  "system": {
+    "resistance_ohm": 0.015
+  }
+}
